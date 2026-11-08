@@ -1,0 +1,19 @@
+# Dependencies — includes the local schemastery junction that exists only on the
+# machine holding the profile. It must never be committed (see README 「依赖约束」).
+node_modules/
+
+# Logs and OS noise
+*.log
+npm-debug.log*
+pnpm-debug.log*
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Editor
+.idea/
+.vscode/
+*.swp
+
+# Scratch space (the audit used one; never commit it)
+临时/

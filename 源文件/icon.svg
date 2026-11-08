@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Prompt enhancer">
+  <rect width="64" height="64" rx="14" fill="#1f6feb"/>
+  <path d="M38 10l2.6 6.9 6.9 2.6-6.9 2.6L38 29l-2.6-6.9L28.5 19.5l6.9-2.6z" fill="#ffffff"/>
+  <path d="M27 22.5l5.5 5.5-3.6 3.6L23.4 26z" fill="#ffffff" opacity="0.9"/>
+  <path d="M12.5 49.5l15-15 4.2 4.2-15 15z" fill="#ffffff" opacity="0.95"/>
+  <path d="M49 38l1.8 4.7 4.7 1.8-4.7 1.8L49 51l-1.8-4.7L42.5 44.5l4.7-1.8z" fill="#c9e2ff"/>
+  <circle cx="22" cy="14" r="2.6" fill="#c9e2ff"/>
+</svg>

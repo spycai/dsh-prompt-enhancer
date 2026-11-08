@@ -1,0 +1,26 @@
+{
+  "meta": {
+    "title": "Prompt enhancer",
+    "description": "Adds a wand button to the left of the model selector that rewrites the drafted message into a professional prompt, with restore, cancel, and a polish mode."
+  },
+  "label": "Enhance prompt",
+  "undo": "Restore the original text",
+  "busy": "Rewriting the prompt… click to cancel",
+  "empty": "Type a message in the composer first",
+  "done": "Prompt rewritten",
+  "applied": "Pending result applied",
+  "restored": "Original text restored",
+  "changed": "The draft changed meanwhile — click again to apply the result",
+  "truncated": "The result was cut off by the length limit",
+  "noModel": "No model is selected for this session yet",
+  "failed": "Prompt enhancement failed",
+  "timeout": "The prompt rewrite timed out",
+  "network": "Prompt enhancement is unreachable",
+  "unauthorized": "This page is not authorized for prompt enhancement",
+  "tooLong": "The message is too long to rewrite",
+  "menuTitle": "Choose a mode",
+  "modeRewrite": "Professional prompt",
+  "modePolish": "Polish only",
+  "modeRewriteHint": "I pick the technical defaults — you describe the need",
+  "modePolishHint": "Keep length and structure, improve wording"
+}
