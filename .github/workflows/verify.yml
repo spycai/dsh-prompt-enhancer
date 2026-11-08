@@ -14,22 +14,19 @@ jobs:
         with:
           node-version: '20'
 
+      # No install step: the plugin has no runtime dependencies. schemastery is
+      # an optional peer, so on CI it will not resolve and the schema tests skip.
+
       - name: Syntax check every source file
-        working-directory: 源文件
         run: |
           node --check index.js
           node --check client.js
           node --check lib/prompt.js
 
       - name: Unit and integration tests
-        working-directory: 源文件
         run: npm test
 
-      # The Config schema is optional: on a machine without the schemastery
-      # junction the export is undefined and the plugin still works. The suite
-      # therefore asserts schema behaviour only when the package resolves.
       - name: Schema resolution is reported, never fatal
-        working-directory: 源文件
         run: |
           node -e "
           import('./index.js').then((m) => {

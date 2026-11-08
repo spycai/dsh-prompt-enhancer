@@ -1,6 +1,10 @@
 # Dependencies — includes the local schemastery junction that exists only on the
-# machine holding the profile. It must never be committed (see README 「依赖约束」).
+# machine holding the profile. It must never be committed (see README).
 node_modules/
+
+# gh CLI login state (OAuth token) — never commit
+.gh_config/
+hosts.yml
 
 # Logs and OS noise
 *.log
@@ -15,5 +19,5 @@ desktop.ini
 .vscode/
 *.swp
 
-# Scratch space (the audit used one; never commit it)
+# Scratch space
 临时/
