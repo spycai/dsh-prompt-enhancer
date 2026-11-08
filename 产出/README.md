@@ -2,14 +2,14 @@
 
 在对话框工具栏、**模型选择器正左边**加一个魔棒按钮：点一下弹出「专业提示词 / 仅润色」两种模式，选一个就把输入框里的话改写成对应结果，并替换回输入框。
 
-版本脉络：v1.1 修审计 P0/P1 → v1.2 默认值优先（不让不懂的人填空）→ v1.3 点一下看两个模式 → v1.4 修完第二轮审计 4 必修 + 6 中等 → **v1.5 补上 Config schema（M-9），审计问题清单已清空**。
+版本脉络：v1.1 修审计 P0/P1 → v1.2 默认值优先（不让不懂的人填空）→ v1.3 点一下看两个模式 → v1.4 修完第二轮审计 4 必修 + 6 中等 → v1.5 补上 Config schema（M-9）→ **v1.5.1 补齐工程基建（engines / npm test / git / CI），审计清单归零**。
 
 ## 安装状态
 
 | 项 | 值 |
 | --- | --- |
 | 包名 | `dsh-prompt-enhancer` |
-| 版本 | 1.5.0 |
+| 版本 | 1.5.1 |
 | 安装方式 | junction 链接（改源码后禁用/启用插件即可热重载，无需重启 Desktop） |
 | 链接目标 | `E:\deepseek harmess\01_主项目\dsh-prompt-enhancer\源文件` |
 | 所在界面 | 输入框工具栏 `conversation.input.right`，`order: 27` |
@@ -50,7 +50,8 @@
 ## 测试覆盖
 
 ```
-node --test test/prompt.test.mjs test/enhance.integration.test.mjs
+cd 源文件 && npm test
+# 等价于 node --test test/prompt.test.mjs test/enhance.integration.test.mjs
 ```
 
 **38/38 通过**，分两层：
@@ -64,10 +65,34 @@ node --test test/prompt.test.mjs test/enhance.integration.test.mjs
 
 ## 未修的项（如实标注）
 
-| 项 | 原因 |
+审计报告 `审计报告-v1.3.0.md` 的问题清单**已全部关闭**。此前挂账的三项已于本版收尾：
+
+| 项 | 处理结果 |
 | --- | --- |
-| 低-18 `engines.node` | 插件通过 junction 安装，`engines` 不参与实际校验，加了只是文档属性。价值低。 |
-| 仓库无 git/CI/lint | 属工程基建，不是本插件代码问题，需单独决策。 |
+| 低-18 `engines.node` | **已加**：`"engines": { "node": ">=20" }`。junction 安装下它不参与实际校验，但作为清单声明有意义，也让 CI 与本地对齐（CI 用 Node 20）。 |
+| 无 `test` 脚本 | **已加**：`npm test` 一条命令跑完全部 38 条。 |
+| 仓库无 git/CI/lint | **已收**：git 仓库已初始化并完成首个提交（`6f9f45c`），`.gitignore` 排除了 `node_modules` 与 `临时/`；GitHub Actions `verify.yml` 做三件事——语法检查、跑测试、验证 `Config` 导出不致命。**未引入 lint 工具**（见下）。 |
+
+**仍未做的一项**：没有引入 ESLint/Prettier。理由：本仓库没有构建步骤、没有第三方运行时依赖，引入 lint 意味着新增 `devDependencies`、配置文件和 CI 安装步骤，收益主要是风格统一，而当前风格的唯一真值就是现有代码。如果团队要多人协作，再补不迟——这属于决策，不是缺陷。
+
+### CI 与"可选 schema"如何共存
+
+`schemastery` 是可选依赖（junction 安装没有依赖树）。CI 机器上通常解析不到它，所以：
+
+- 测试里的两条 schema 用例用 `skip` 而非 `fail`：**实测本地有 junction 时 38/38 全过，把 junction 改名后 36 过 + 2 跳过，无失败**。
+- CI 额外跑一步验证 `apply` 仍是函数、`Config` 导出与否都不报错，保证"少了 schema 插件也能用"这条契约不被破坏。
+
+## 工程基建（v1.5.1）
+
+```
+dsh-prompt-enhancer/
+├── .gitignore              # 排除 node_modules（含 schemastery junction）与 临时/
+├── .github/workflows/verify.yml
+├── 产出/                    # README、审计报告
+└── 源文件/                  # package.json / index.js / client.js / lib/ / test/ / locale/
+```
+
+首个提交：`6f9f45c dsh-prompt-enhancer v1.5.0: composer prompt enhancer`（14 文件，2302 行）。
 
 ## ⚠️ 依赖约束（v1.5 实测得出，务必保留）
 
