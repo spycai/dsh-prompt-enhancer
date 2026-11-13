@@ -38,34 +38,60 @@ function harness(script = {}, config = undefined) {
     },
   }
 
+  const webRoutes = new Map()
+  const services = {
+    connection: {
+      admit: () => ({ peer: {} }),
+      fetch: {
+        register(route) {
+          routes.set(route.path, route)
+          return () => {
+            routes.delete(route.path)
+          }
+        },
+      },
+    },
+    webServer: {
+      register(route) {
+        webRoutes.set(route.path, route)
+        return () => {
+          webRoutes.delete(route.path)
+        }
+      },
+    },
+    agentDefaultModel: { currentSelection: () => ({ provider: 'default-provider', model: 'default-model' }) },
+  }
+
   const ctx = {
     llm,
-    get(name) {
-      if (name === 'connection') {
-        return {
-          fetch: {
-            register(route) {
-              routes.set(route.path, route)
-              return () => {
-                routes.delete(route.path)
-              }
-            },
-          },
-        }
-      }
-      if (name === 'agentDefaultModel') {
-        return { currentSelection: () => ({ provider: 'default-provider', model: 'default-model' }) }
-      }
-      return undefined
-    },
+    get: (name) => services[name],
     effect(callback) {
       callback()
+      return () => {}
+    },
+    /**
+     * Resolve the named services and hand the registration a context that has
+     * them, mirroring how the real `ctx.inject(deps, callback)` behaves.
+     */
+    inject(names, callback) {
+      const scope = {
+        ...ctx,
+        get: (name) => services[name],
+        effect: (fn) => {
+          fn()
+          return () => {}
+        },
+      }
+      for (const name of names) {
+        Object.defineProperty(scope, name, { value: services[name], enumerable: true, configurable: true })
+      }
+      callback(scope)
       return () => {}
     },
   }
 
   apply(ctx, config)
-  return { routes, calls, ctx }
+  return { routes, webRoutes, calls, ctx }
 }
 
 /**

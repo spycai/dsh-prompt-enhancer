@@ -18,6 +18,7 @@
   "network": "Prompt enhancement is unreachable",
   "unauthorized": "This page is not authorized for prompt enhancement",
   "tooLong": "The message is too long to rewrite",
+  "notReady": "The prompt service is not ready — restart DSH or reload the plugin",
   "menuTitle": "Choose a mode",
   "modeRewrite": "Professional prompt",
   "modePolish": "Polish only",

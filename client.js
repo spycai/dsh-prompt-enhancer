@@ -35,6 +35,7 @@ window.__ModuleLoader__.load({
       unauthorized: 'This page is not authorized for prompt enhancement',
       rateLimited: 'Too many rewrites just now — wait a moment and try again',
       tooLong: 'The message is too long to rewrite',
+      notReady: 'The prompt service is not ready — restart DSH or reload the plugin',
       menuTitle: 'Choose a mode',
       modeRewrite: 'Professional prompt',
       modePolish: 'Polish only',
@@ -59,6 +60,7 @@ window.__ModuleLoader__.load({
       unauthorized: '当前页面没有调用提示词增强的权限',
       rateLimited: '刚才改写太频繁，稍等一下再试',
       tooLong: '内容太长，无法改写',
+      notReady: '提示词服务未就绪 —— 请重启 DSH 或重新加载插件',
       menuTitle: '选择模式',
       modeRewrite: '专业提示词',
       modePolish: '仅润色',
@@ -133,7 +135,13 @@ window.__ModuleLoader__.load({
         const payload = await response.json().catch(() => undefined)
         if (payload === undefined) {
           if (endpoint === workingEndpoint) workingEndpoint = null
+          // A non-JSON answer means no route of ours served this path: the
+          // static shell answers 404/405 for paths the Host never registered.
+          // Reporting the bare status hid that case ("HTTP 405" with no hint),
+          // so keep the status but mark it as "no route" for the copy layer.
           lastError = new Error(`HTTP ${String(response.status)}`)
+          lastError.noRoute = true
+          lastError.status = response.status
           continue
         }
         workingEndpoint = endpoint
@@ -163,6 +171,10 @@ window.__ModuleLoader__.load({
     /** Map a failure onto localized text, keyed by the stable code. */
     function errorText(t, error) {
       if (error?.name === 'AbortError') return tr(t, 'timeout', EN.timeout)
+      // No route answered: the Host half registered nothing for this path, which
+      // is a plugin/service state problem rather than a request the user made
+      // wrong. Say so instead of echoing a bare HTTP status.
+      if (error?.noRoute === true) return tr(t, 'notReady', EN.notReady)
       const key = typeof error?.code === 'string' ? CODE_KEYS[error.code] : undefined
       if (key !== undefined) return tr(t, key, EN[key] ?? EN.failed)
       const message = typeof error?.message === 'string' ? error.message.trim() : ''

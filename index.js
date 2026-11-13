@@ -64,6 +64,13 @@ const MAX_BODY_BYTES = 1024 * 1024
 /**
  * Register both entry points for the lifetime of this plugin.
  *
+ * Each route waits for its OWN service through `ctx.inject([...])` instead of
+ * probing with `ctx.get()` once at apply time. That probe races the Desktop boot
+ * order: the row activates before `webServer`/`connection` exist, the check sees
+ * `undefined`, registration is skipped, and the route never appears again even
+ * though the plugin reports `active`. `inject` is reactive, so the registration
+ * happens whenever the service becomes available.
+ *
  * @param ctx - Host context that has `llm` injected.
  * @param config - Row config from `cordis.patch.yml`.
  */
@@ -74,54 +81,65 @@ export function apply(ctx, config) {
   /** Rewrite timestamps per session, for the optional minute limiter. */
   const recentCalls = new Map()
 
-  ctx.effect(() => {
-    /** @type {Array<() => unknown>} */
-    const disposers = []
+  mountRoute(ctx, ['connection'], `${API_PATH} (connection bridge)`, (scope) =>
+    scope.connection.fetch.register({
+      path: API_PATH,
+      methods: ['POST'],
+      requestBody: 'buffered',
+      fetch: (request) => respond(scope, settings, bodyLimit, recentCalls, request),
+    }),
+  )
 
-    const connection = ctx.get('connection')
-    if (connection !== undefined) {
+  mountRoute(ctx, ['webServer'], WEB_PATH, (scope) =>
+    scope.webServer.register({
+      kind: 'exact',
+      path: WEB_PATH,
+      handler: (req, res) => {
+        void handleNode(scope, settings, bodyLimit, recentCalls, req, res)
+      },
+    }),
+  )
+}
+
+/**
+ * Run one route registration once its services exist, and fold the disposer into
+ * the scope's effect so unloading removes it.
+ *
+ * A plain `ctx.get(name)` before the service exists would silently skip
+ * registration for the whole session, so this prefers the reactive `inject`
+ * and falls back to an immediate attempt only where `inject` is unavailable.
+ *
+ * @param ctx - Host context.
+ * @param services - Service keys the registration depends on.
+ * @param label - Effect label, also used in the warning text.
+ * @param register - Receives a context where the services are present; returns a disposer.
+ */
+function mountRoute(ctx, services, label, register) {
+  const mount = (scope) => {
+    scope.effect(() => {
+      let dispose
       try {
-        disposers.push(
-          connection.fetch.register({
-            path: API_PATH,
-            methods: ['POST'],
-            requestBody: 'buffered',
-            fetch: (request) => respond(ctx, settings, bodyLimit, recentCalls, request),
-          }),
-        )
+        dispose = register(scope)
       } catch (error) {
-        warn(ctx, `${API_PATH} was not registered`, error)
+        warn(scope, `${label} was not registered`, error)
+        return () => {}
       }
-    }
-
-    const webServer = ctx.get('webServer')
-    if (webServer !== undefined) {
-      try {
-        disposers.push(
-          webServer.register({
-            kind: 'exact',
-            path: WEB_PATH,
-            handler: (req, res) => {
-              void handleNode(ctx, settings, bodyLimit, recentCalls, req, res)
-            },
-          }),
-        )
-      } catch (error) {
-        warn(ctx, `${WEB_PATH} was not registered`, error)
-      }
-    }
-
-    return async () => {
-      recentCalls.clear()
-      for (const dispose of disposers) {
+      return () => {
         try {
-          await dispose()
+          const result = dispose()
+          if (result !== undefined && typeof result.then === 'function') void result.catch(() => {})
         } catch {
           /* a route that is already gone needs no cleanup */
         }
       }
-    }
-  }, 'dsh-prompt-enhancer: prompt enhancement routes')
+    }, `dsh-prompt-enhancer: ${label}`)
+  }
+
+  if (typeof ctx.inject === 'function') {
+    ctx.inject(services, mount)
+    return
+  }
+  mount(ctx)
 }
 
 /**
