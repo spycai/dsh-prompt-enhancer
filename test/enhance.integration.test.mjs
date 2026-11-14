@@ -19,11 +19,19 @@ import { apply } from '../index.js'
  * @param config - Row config passed to `apply`.
  * @returns `{ routes, calls, ctx }`.
  */
-function harness(script = {}, config = undefined) {
+function harness(script = {}, config = undefined, modelInfo = {}) {
   const routes = new Map()
   const calls = []
+  const modelInfoCalls = []
 
   const llm = {
+    // `resolveModelInfo` is optional on the real service; the harness answers
+    // with whatever the test supplied, or throws when `modelInfo.throws` is set.
+    async resolveModelInfo(provider, model) {
+      modelInfoCalls.push({ provider, model })
+      if (modelInfo.throws !== undefined) throw modelInfo.throws
+      return modelInfo.info
+    },
     async *stream(options) {
       calls.push(options)
       const step = typeof script === 'function' ? script(calls.length) : script
@@ -64,7 +72,6 @@ function harness(script = {}, config = undefined) {
     },
     agentDefaultModel: { currentSelection: () => ({ provider: 'default-provider', model: 'default-model' }) },
   }
-
   const ctx = {
     llm,
     get: (name) => services[name],
@@ -94,7 +101,7 @@ function harness(script = {}, config = undefined) {
   }
 
   apply(ctx, config)
-  return { routes, webRoutes, calls, ctx }
+  return { routes, webRoutes, calls, modelInfoCalls, ctx }
 }
 
 /**
@@ -235,6 +242,34 @@ test('the default token budget leaves room for reasoning plus the answer', async
   const h = harness({ deltas: ['结果'] })
   await call(h, { text: '写个周报' })
   assert.ok(h.calls[0].maxTokens >= 3000, `maxTokens ${h.calls[0].maxTokens} is too small for a reasoning model`)
+})
+
+test('a reasoning route reports the longer timeout so the Client can adapt', async () => {
+  const h = harness({ deltas: ['结果'] }, undefined, { info: { reasoning: { efforts: [{ id: 'high' }] } } })
+  const result = await call(h, { text: '写个周报' })
+  assert.equal(result.payload.reasoning, true)
+  assert.ok(result.payload.timeoutMs >= 180000, `expected a long budget, got ${result.payload.timeoutMs}`)
+})
+
+test('a chat route keeps the short timeout', async () => {
+  const h = harness({ deltas: ['结果'] }, undefined, { info: { reasoning: undefined } })
+  const result = await call(h, { text: '写个周报' })
+  assert.equal(result.payload.reasoning, false)
+  assert.equal(result.payload.timeoutMs, 90000)
+})
+
+test('an unreadable model degrades to the short timeout instead of failing', async () => {
+  const h = harness({ deltas: ['结果'] }, undefined, { throws: new Error('adapter has no resolveModelInfo') })
+  const result = await call(h, { text: '写个周报' })
+  assert.equal(result.status, 200, 'a metadata failure must not fail the rewrite')
+  assert.equal(result.payload.reasoning, false)
+  assert.equal(result.payload.timeoutMs, 90000)
+})
+
+test('model info is read once per rewrite, not once per token', async () => {
+  const h = harness({ deltas: ['a', 'b', 'c'] }, undefined, { info: {} })
+  await call(h, { text: '写个周报' })
+  assert.equal(h.modelInfoCalls.length, 1)
 })
 
 test('empty and oversized drafts are rejected before the model call', async () => {

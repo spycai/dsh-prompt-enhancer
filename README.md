@@ -32,22 +32,26 @@
 
 ## 配置
 
-`cordis.patch.yml` 里 8 个可选字段（都有默认值，不填也能用）：
+`cordis.patch.yml` 里 9 个可选字段（都有默认值，不填也能用）：
 
-`mode`、`maxTokens`、`temperature`、`maxInputChars`、`maxOutputChars`、`rateLimitPerMinute`、`provider`、`model`
+`mode`、`maxTokens`、`temperature`、`reasoningEffort`、`maxInputChars`、`maxOutputChars`、`rateLimitPerMinute`、`provider`、`model`
+
+`reasoningEffort` 留空表示跟随模型默认。**改写很慢时先把它设成 `low`**，再考虑换模型——推理模型的思考 token 也计入 `maxTokens`，所以默认值给了 4000 而不是 1400。
+
+客户端超时会**自动适配**：插件在响应里带回该模型需要的等待时间（推理模型 4 分钟，普通模型 90 秒），下次点击沿用。不需要手动配置。
 
 `schemastery` 是**可选**依赖：装不上时插件照常工作，只是没有可视化的配置校验界面。
 
 ## 开发
 
 ```bash
-npm test              # 自动发现并运行 test/*.test.mjs（当前 80 条）
+npm test              # 自动发现并运行 test/*.test.mjs（当前 98 条）
 npm run baseline:check # 提示词质量门禁：用已录制样本对比，回退即失败
 ```
 
 `npm test` 通过 `test/lib/run-tests.mjs` 自动发现所有 `*.test.mjs`，新增测试文件无需改配置；`test/manifest.test.mjs` 会校验 CI 的语法检查覆盖了全部生产源文件。
 
-Host 半在 `index.js`（路由、鉴权、模型调用），Client 半在 `client.js`（按钮、菜单、还原、取消），纯逻辑在 `lib/prompt.js`。测试用假 `ctx` + 假 `ctx.llm` 跑通真实 Host 代码，不需要真实模型。
+Host 半在 `index.js`（路由、鉴权、模型调用），Client 半在 `client.js`（按钮、菜单、还原、取消），纯逻辑在 `lib/prompt.js`（提示词与配置）和 `lib/timeout.js`（超时策略）。测试用假 `ctx` + 假 `ctx.llm` 跑通真实 Host 代码，不需要真实模型。
 
 提示词质量基线、评估器与录制样本在 `test/lib/` 与 `test/fixtures/`；v2「许愿式」结构化输出目前是**设计稿**（`产出/v2设计稿/`），尚未接入运行时。
 

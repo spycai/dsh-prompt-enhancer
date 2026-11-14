@@ -11,8 +11,18 @@ window.__ModuleLoader__.load({
      * serves a page the Host itself rendered, and the Host admits it first.
      */
     const ENDPOINTS = ['/api/prompt-enhancer/enhance', '/prompt-enhance']
-    /** A rewrite that never settles must not pin the button in its busy state. */
-    const REQUEST_TIMEOUT_MS = 90000
+    /**
+     * A rewrite that never settles must not pin the button in its busy state.
+     *
+     * The value adapts: the Host reports how long this route deserves (a
+     * reasoning model needs far longer than a chat model), and the answer is
+     * remembered for the next click. 90 s stays the default because it is the
+     * right budget for a chat model, which is the common case.
+     */
+    const DEFAULT_TIMEOUT_MS = 90000
+    /** Mirrors `lib/timeout.js`; the Host is authoritative, these are the floor/ceiling. */
+    const MIN_TIMEOUT_MS = 30000
+    const MAX_TIMEOUT_MS = 300000
     /** How long "restore the original" stays offered after an enhancement. */
     const UNDO_WINDOW_MS = 120000
 
@@ -107,6 +117,32 @@ window.__ModuleLoader__.load({
 
     /** Endpoint that answered once, so later clicks skip the probe order. */
     let workingEndpoint = null
+    /**
+     * Timeout to use for the next request, learned from the previous answer.
+     *
+     * Kept in module scope rather than component state because it describes the
+     * route, not this render: a reasoning model stays a reasoning model across
+     * clicks, and remounting the composer should not forget that.
+     */
+    let learnedTimeoutMs = 0
+
+    /**
+     * Read the timeout the Host recommended, clamped to what this Client accepts.
+     *
+     * @param payload - Response body from the Host.
+     * @returns Milliseconds.
+     */
+    function readSuggestedTimeout(payload) {
+      const raw = payload?.timeoutMs
+      const parsed = typeof raw === 'number' ? raw : Number.parseFloat(String(raw ?? ''))
+      if (!Number.isFinite(parsed)) return 0
+      return Math.min(MAX_TIMEOUT_MS, Math.max(MIN_TIMEOUT_MS, Math.trunc(parsed)))
+    }
+
+    /** The budget this click should allow. */
+    function currentTimeoutMs() {
+      return learnedTimeoutMs > 0 ? learnedTimeoutMs : DEFAULT_TIMEOUT_MS
+    }
 
     /**
      * Post one JSON body to the first endpoint that answers with JSON. A Host
@@ -394,10 +430,13 @@ window.__ModuleLoader__.load({
         canceledRef.current = false
         const timer = setTimeout(() => {
           controller.abort()
-        }, REQUEST_TIMEOUT_MS)
+        }, currentTimeoutMs())
 
         postJson(body, controller.signal)
           .then((payload) => {
+            // Learn the budget this route needs before anything else can fail.
+            const suggested = readSuggestedTimeout(payload)
+            if (suggested > 0) learnedTimeoutMs = suggested
             if (typeof payload?.text === 'string' && payload.text !== '') applyResult(payload, snapshot)
           })
           .catch((error) => {
