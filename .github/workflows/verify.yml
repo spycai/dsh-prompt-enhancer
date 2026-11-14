@@ -21,10 +21,17 @@ jobs:
         run: |
           node --check index.js
           node --check client.js
-          node --check lib/prompt.js
+          for f in lib/*.js; do node --check "$f"; done
 
       - name: Unit and integration tests
         run: npm test
+
+      # The prompt-quality gate. `npm test` already asserts the evaluator
+      # reproduces the reference numbers exactly; this step additionally prints
+      # the scorecard into the log and fails on any regression against the
+      # recorded baseline, so a prompt edit cannot quietly lower quality.
+      - name: Prompt quality against the recorded baseline
+        run: npm run baseline:check
 
       - name: Schema resolution is reported, never fatal
         run: |

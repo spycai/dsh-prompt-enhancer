@@ -1,0 +1,429 @@
+[
+  {
+    "id": "w01",
+    "category": "short-wish",
+    "input": "做个PPT",
+    "note": "极短，无主题无受众",
+    "expect": {
+      "deliverable": ["PPT", "幻灯片", "演示文稿"],
+      "mustPlaceholder": ["主题"],
+      "mustNotAsk": ["技术栈", "框架"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "w02",
+    "category": "short-wish",
+    "input": "写个方案",
+    "note": "极短，方案类型不明",
+    "expect": {
+      "deliverable": ["方案", "文档"],
+      "mustNotAsk": ["编程语言"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "w03",
+    "category": "short-wish",
+    "input": "分析下数据",
+    "note": "极短，无数据源",
+    "expect": {
+      "deliverable": ["分析", "报告", "结论"],
+      "mustPlaceholder": ["数据"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "w04",
+    "category": "short-wish",
+    "input": "帮我写个脚本",
+    "note": "极短，不知道干什么",
+    "expect": {
+      "deliverable": ["脚本", "代码", "程序"],
+      "mustPlaceholder": ["功能", "做什么", "需求"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "w05",
+    "category": "short-wish",
+    "input": "做个网站",
+    "note": "极短，无类型",
+    "expect": {
+      "deliverable": ["网站", "网页"],
+      "mustNotAsk": ["用React还是Vue"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "w06",
+    "category": "short-wish",
+    "input": "写个总结",
+    "note": "极短，无素材",
+    "expect": {
+      "deliverable": ["总结", "概要"],
+      "mustPlaceholder": ["素材", "内容", "原文", "哪些事"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "w07",
+    "category": "short-wish",
+    "input": "搞个活动策划",
+    "note": "极短，场景不明",
+    "expect": {
+      "deliverable": ["策划", "方案", "计划"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "w08",
+    "category": "short-wish",
+    "input": "做个表格",
+    "note": "极短，字段不明",
+    "expect": {
+      "deliverable": ["表格", "Excel", "表"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "w09",
+    "category": "short-wish",
+    "input": "写个通知",
+    "note": "极短，事项不明",
+    "expect": {
+      "deliverable": ["通知"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "w10",
+    "category": "short-wish",
+    "input": "帮我翻译一下",
+    "note": "极短，无原文无语言",
+    "expect": {
+      "deliverable": ["翻译", "译文"],
+      "mustPlaceholder": ["原文", "内容", "目标语言"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "m01",
+    "category": "medium-vague",
+    "input": "帮我写个爬虫",
+    "note": "有意图，缺目标站点",
+    "expect": {
+      "deliverable": ["爬虫", "抓取", "采集"],
+      "mustPlaceholder": ["网站", "站点", "URL", "目标"],
+      "mustNotAsk": ["用Python还是Node"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "m02",
+    "category": "medium-vague",
+    "input": "做个员工管理系统",
+    "note": "有意图，缺规模与部署",
+    "expect": {
+      "deliverable": ["系统", "管理"],
+      "mustNotAsk": ["用什么数据库"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "m03",
+    "category": "medium-vague",
+    "input": "帮我优化一下这段代码的性能",
+    "note": "有意图，缺代码",
+    "expect": {
+      "deliverable": ["优化", "性能"],
+      "mustPlaceholder": ["代码", "片段"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "m04",
+    "category": "medium-vague",
+    "input": "写个产品介绍",
+    "note": "有意图，缺产品信息",
+    "expect": {
+      "deliverable": ["介绍", "文案"],
+      "mustPlaceholder": ["产品", "名称", "卖点"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "m05",
+    "category": "medium-vague",
+    "input": "帮我准备个面试",
+    "note": "有意图，缺岗位",
+    "expect": {
+      "deliverable": ["面试", "准备"],
+      "mustPlaceholder": ["岗位", "职位"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "m06",
+    "category": "medium-vague",
+    "input": "给团队做个分享",
+    "note": "有意图，缺主题",
+    "expect": {
+      "deliverable": ["分享", "讲解", "材料"],
+      "mustPlaceholder": ["主题", "内容"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "m07",
+    "category": "medium-vague",
+    "input": "帮我把这个功能自动化",
+    "note": "有意图，缺流程",
+    "expect": {
+      "deliverable": ["自动化", "脚本", "流程"],
+      "mustPlaceholder": ["流程", "步骤", "功能"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "m08",
+    "category": "medium-vague",
+    "input": "整理一份竞品分析",
+    "note": "有意图，缺竞品名单",
+    "expect": {
+      "deliverable": ["竞品", "分析", "报告"],
+      "mustPlaceholder": ["竞品", "对手", "名称"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "m09",
+    "category": "medium-vague",
+    "input": "帮我写封邮件拒绝供应商涨价",
+    "note": "有意图，语气未定",
+    "expect": {
+      "deliverable": ["邮件", "回复"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "m10",
+    "category": "medium-vague",
+    "input": "做个用户调研问卷",
+    "note": "有意图，缺对象",
+    "expect": {
+      "deliverable": ["问卷", "调研"],
+      "mustPlaceholder": ["用户", "对象", "产品"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "p01",
+    "category": "private-facts",
+    "input": "下周三给客户做产品演示，做个PPT",
+    "note": "日期+受众+场景已给",
+    "expect": {
+      "deliverable": ["PPT", "幻灯片", "演示"],
+      "mustPreserve": ["下周三", "客户"],
+      "mustNotAsk": ["受众是谁"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "p02",
+    "category": "private-facts",
+    "input": "明天上午10点前把这份合同摘要发给张经理",
+    "note": "时间+人物+对象",
+    "expect": {
+      "mustPreserve": ["明天", "10点", "张经理"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "p03",
+    "category": "private-facts",
+    "input": "我们公司叫星海科技，做工业传感器，写个公司简介",
+    "note": "公司名+行业",
+    "expect": {
+      "mustPreserve": ["星海科技", "工业传感器"],
+      "mustNotAsk": ["公司叫什么"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "p04",
+    "category": "private-facts",
+    "input": "预算只有5万，做个为期3个月的市场推广方案",
+    "note": "预算+周期",
+    "expect": {
+      "mustPreserve": ["5万", "3个月"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "p05",
+    "category": "private-facts",
+    "input": "把 Q3 的销售额数据做成图表，数据在 sales_q3.xlsx 里",
+    "note": "文件名+期间",
+    "expect": {
+      "mustPreserve": ["Q3", "sales_q3.xlsx"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "p06",
+    "category": "private-facts",
+    "input": "周五下午3点开部门周会，帮我列个议程",
+    "note": "时间+会议",
+    "expect": {
+      "mustPreserve": ["周五", "3点"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "p07",
+    "category": "private-facts",
+    "input": "我是HR，要给20个新员工做入职培训，排个计划",
+    "note": "角色+人数",
+    "expect": {
+      "mustPreserve": ["HR", "20个", "入职培训"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "p08",
+    "category": "private-facts",
+    "input": "参考 https://example.com/pricing 这个页面，写个竞品对比",
+    "note": "URL 必须保留",
+    "expect": {
+      "mustPreserve": ["https://example.com/pricing"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "e01",
+    "category": "entity-heavy",
+    "input": "把 3.5% 的增长率、同比 12.7%、2026年11月的数据整理成月报",
+    "note": "多个数字必须保真",
+    "expect": {
+      "mustPreserve": ["3.5%", "12.7%", "2026年11月"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "e02",
+    "category": "entity-heavy",
+    "input": "写个通知：11月20日前提交2026年度预算表，联系人李工，电话 010-88886666",
+    "note": "日期+电话+人名",
+    "expect": {
+      "mustPreserve": ["11月20日", "2026年度", "李工", "010-88886666"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "e03",
+    "category": "entity-heavy",
+    "input": "帮我把 README.md 里的安装步骤改写得更清楚，保留 v1.4.2 版本号",
+    "note": "文件名+版本号",
+    "expect": {
+      "mustPreserve": ["README.md", "v1.4.2"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "e04",
+    "category": "entity-heavy",
+    "input": "分析这份数据：Q1 收入 1280 万，Q2 收入 1450 万，Q3 收入 1190 万",
+    "note": "三个数字",
+    "expect": {
+      "mustPreserve": ["1280", "1450", "1190"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "e05",
+    "category": "entity-heavy",
+    "input": "把 2026-11-14 到 2026-12-31 的排期做成甘特图",
+    "note": "两个完整日期",
+    "expect": {
+      "mustPreserve": ["2026-11-14", "2026-12-31"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "e06",
+    "category": "entity-heavy",
+    "input": "给 @张三 和 @李四 各写一份项目复盘模板，项目代号 PRJ-2026-018",
+    "note": "两个mention+代号",
+    "expect": {
+      "mustPreserve": ["@张三", "@李四", "PRJ-2026-018"],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "t01",
+    "category": "trap-no-ask",
+    "input": "用 React 写一个 TODO List，要支持本地存储",
+    "note": "技术栈已给，不能反问",
+    "expect": {
+      "mustPreserve": ["React"],
+      "mustNotAsk": ["用什么框架", "用什么语言"],
+      "maxPlaceholders": 1
+    }
+  },
+  {
+    "id": "t02",
+    "category": "trap-no-ask",
+    "input": "用 Python 写个脚本，把目录下所有 CSV 合并成一个",
+    "note": "语言已给",
+    "expect": {
+      "mustPreserve": ["Python", "CSV"],
+      "mustNotAsk": ["用什么语言"],
+      "maxPlaceholders": 1
+    }
+  },
+  {
+    "id": "t03",
+    "category": "trap-no-ask",
+    "input": "用 200 字写一段产品 slogan，风格要幽默",
+    "note": "字数+风格已给",
+    "expect": {
+      "mustPreserve": ["200 字", "幽默"],
+      "mustNotAsk": ["什么风格", "多少字"],
+      "maxPlaceholders": 1
+    }
+  },
+  {
+    "id": "t04",
+    "category": "trap-no-ask",
+    "input": "给非技术背景的高管写一页纸的技术架构说明",
+    "note": "受众+篇幅已给",
+    "expect": {
+      "mustPreserve": ["高管"],
+      "mustNotAsk": ["受众是谁"],
+      "maxPlaceholders": 1
+    }
+  },
+  {
+    "id": "t05",
+    "category": "trap-no-ask",
+    "input": "用 Markdown 表格输出，三列：名称、价格、库存",
+    "note": "格式+列已给",
+    "expect": {
+      "mustPreserve": ["Markdown", "名称", "价格", "库存"],
+      "mustNotAsk": ["用什么格式"],
+      "maxPlaceholders": 1
+    }
+  },
+  {
+    "id": "t06",
+    "category": "trap-no-ask",
+    "input": "基于 Vue 3 + Vite 做个登录页，只用 CSS 不引组件库",
+    "note": "技术栈+约束已给",
+    "expect": {
+      "mustPreserve": ["Vue 3", "Vite", "CSS"],
+      "mustNotAsk": ["用什么框架", "要不要引组件库"],
+      "maxPlaceholders": 1
+    }
+  }
+]

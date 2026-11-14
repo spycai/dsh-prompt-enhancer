@@ -1,0 +1,1234 @@
+{
+  "label": "v1.5.5",
+  "generatedAt": "2026-11-14T02:51:56.757Z",
+  "deterministicMax": 60,
+  "summary": {
+    "overall": {
+      "count": 40,
+      "meanScore": 55.9,
+      "fidelityRate": 1,
+      "completenessRate": 0.825,
+      "sendabilityRate": 1,
+      "targetingRate": 0.975,
+      "concisionRate": 1,
+      "defaultRate": 1
+    },
+    "categories": {
+      "short-wish": {
+        "count": 10,
+        "meanScore": 53.1,
+        "fidelityRate": 1,
+        "completenessRate": 0.7,
+        "sendabilityRate": 1,
+        "targetingRate": 0.9,
+        "concisionRate": 1,
+        "defaultRate": 1
+      },
+      "medium-vague": {
+        "count": 10,
+        "meanScore": 53.9,
+        "fidelityRate": 1,
+        "completenessRate": 0.7,
+        "sendabilityRate": 1,
+        "targetingRate": 1,
+        "concisionRate": 1,
+        "defaultRate": 1
+      },
+      "private-facts": {
+        "count": 8,
+        "meanScore": 60,
+        "fidelityRate": 1,
+        "completenessRate": 1,
+        "sendabilityRate": 1,
+        "targetingRate": 1,
+        "concisionRate": 1,
+        "defaultRate": 1
+      },
+      "entity-heavy": {
+        "count": 6,
+        "meanScore": 54.2,
+        "fidelityRate": 1,
+        "completenessRate": 0.833,
+        "sendabilityRate": 1,
+        "targetingRate": 1,
+        "concisionRate": 1,
+        "defaultRate": 1
+      },
+      "trap-no-ask": {
+        "count": 6,
+        "meanScore": 60,
+        "fidelityRate": 1,
+        "completenessRate": 1,
+        "sendabilityRate": 1,
+        "targetingRate": 1,
+        "concisionRate": 1,
+        "defaultRate": 1
+      }
+    }
+  },
+  "missing": [],
+  "results": [
+    {
+      "id": "w01",
+      "category": "short-wish",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 1
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 46.6
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "w02",
+      "category": "short-wish",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 1
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 46.25
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "w03",
+      "category": "short-wish",
+      "score": 47,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": false,
+        "coverage": 0.6
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 40.8
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "w04",
+      "category": "short-wish",
+      "score": 39,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": false,
+        "coverage": 0.6
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": false,
+        "missingHints": [
+          "功能 | 做什么 | 需求"
+        ]
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 31
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "w05",
+      "category": "short-wish",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 1
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 52.75
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "w06",
+      "category": "short-wish",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 1
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 47.5
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "w07",
+      "category": "short-wish",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 1
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 31.5
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "w08",
+      "category": "short-wish",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 0.8
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 45
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "w09",
+      "category": "short-wish",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 1
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 45.75
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "w10",
+      "category": "short-wish",
+      "score": 25,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": false,
+        "coverage": 0.6
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 27
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "m01",
+      "category": "medium-vague",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 1
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 48.33
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "m02",
+      "category": "medium-vague",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 1
+      },
+      "sendability": {
+        "pass": true,
+        "count": 0
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 31.25
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "m03",
+      "category": "medium-vague",
+      "score": 47,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": false,
+        "coverage": 0.6
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 14.54
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "m04",
+      "category": "medium-vague",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 1
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 29.83
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "m05",
+      "category": "medium-vague",
+      "score": 25,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": false,
+        "coverage": 0.6
+      },
+      "sendability": {
+        "pass": true,
+        "count": 0
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 26.86
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "m06",
+      "category": "medium-vague",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 0.8
+      },
+      "sendability": {
+        "pass": true,
+        "count": 0
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 26.29
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "m07",
+      "category": "medium-vague",
+      "score": 47,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": false,
+        "coverage": 0.6
+      },
+      "sendability": {
+        "pass": true,
+        "count": 0
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 19.8
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "m08",
+      "category": "medium-vague",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 1
+      },
+      "sendability": {
+        "pass": true,
+        "count": 0
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 25.5
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "m09",
+      "category": "medium-vague",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 0.8
+      },
+      "sendability": {
+        "pass": true,
+        "count": 0
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 15.92
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "m10",
+      "category": "medium-vague",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 0.8
+      },
+      "sendability": {
+        "pass": true,
+        "count": 0
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 26.75
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "p01",
+      "category": "private-facts",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 1
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 14.65
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "p02",
+      "category": "private-facts",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 1
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 12.8
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "p03",
+      "category": "private-facts",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 0.8
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 12.17
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "p04",
+      "category": "private-facts",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 1
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 13
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "p05",
+      "category": "private-facts",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 0.8
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 8.29
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "p06",
+      "category": "private-facts",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 1
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 13.33
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "p07",
+      "category": "private-facts",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 1
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 12.65
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "p08",
+      "category": "private-facts",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 1
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 7.69
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "e01",
+      "category": "entity-heavy",
+      "score": 25,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": false,
+        "coverage": 0.6
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 6.95
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "e02",
+      "category": "entity-heavy",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 1
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 6.44
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "e03",
+      "category": "entity-heavy",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 1
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 7.45
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "e04",
+      "category": "entity-heavy",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 1
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 5.24
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "e05",
+      "category": "entity-heavy",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 1
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 8.06
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "e06",
+      "category": "entity-heavy",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 0.8
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 6.45
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "t01",
+      "category": "trap-no-ask",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 1
+      },
+      "sendability": {
+        "pass": true,
+        "count": 0
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 8.41
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "t02",
+      "category": "trap-no-ask",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 1
+      },
+      "sendability": {
+        "pass": true,
+        "count": 0
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 7.67
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "t03",
+      "category": "trap-no-ask",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 0.8
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 7.4
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "t04",
+      "category": "trap-no-ask",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 1
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 11.8
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "t05",
+      "category": "trap-no-ask",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 1
+      },
+      "sendability": {
+        "pass": true,
+        "count": 0
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 6.96
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "t06",
+      "category": "trap-no-ask",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 1
+      },
+      "sendability": {
+        "pass": true,
+        "count": 0
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 7.88
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    }
+  ]
+}

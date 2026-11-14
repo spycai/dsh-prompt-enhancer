@@ -27,6 +27,9 @@ function harness(script = {}, config = undefined) {
     async *stream(options) {
       calls.push(options)
       const step = typeof script === 'function' ? script(calls.length) : script
+      // A transport/adapter failure is different from a `finish.reason`
+      // failure: the generator throws before yielding anything. M-4 regression.
+      if (step.throws !== undefined) throw step.throws
       for (const delta of step.deltas ?? ['结果文本']) {
         yield { type: 'text-delta', index: 0, text: delta }
       }
@@ -181,6 +184,31 @@ test('an unknown upstream code still hides its detail', async () => {
   const h = harness({ failure: { code: 'WEIRD_INTERNAL', message: 'trace abc' } })
   const result = await call(h, { text: '写个周报' })
   assert.equal(result.payload.error.message, 'The model call failed.')
+})
+
+test('a thrown transport error never leaks vendor text to the Client', async () => {
+  // M-4: ctx.llm.stream() itself throwing used to pass error.message straight
+  // through failureOutcome(). request ids, model ids and tokens must not appear.
+  const thrown = Object.assign(
+    new Error('upstream vendor internal error: request_id=req_abc123 token=sk-secret-999 model=vendor-x'),
+    { code: 'ADAPTER_EXPLODED' },
+  )
+  const h = harness({ throws: thrown })
+  const result = await call(h, { text: '写个周报' })
+  assert.equal(result.status, 502)
+  assert.equal(result.payload.error.code, 'ADAPTER_EXPLODED')
+  assert.equal(result.payload.error.message, 'The model call failed.')
+  for (const secret of ['req_abc123', 'sk-secret-999', 'vendor-x', 'upstream vendor']) {
+    assert.doesNotMatch(result.payload.error.message, new RegExp(secret))
+  }
+})
+
+test('a thrown error with no code still produces a stable generic failure', async () => {
+  const h = harness({ throws: new Error('socket hang up ECONNRESET 10.0.0.1:443') })
+  const result = await call(h, { text: '写个周报' })
+  assert.equal(result.payload.error.code, 'ENHANCE_FAILED')
+  assert.equal(result.payload.error.message, 'The model call failed.')
+  assert.doesNotMatch(result.payload.error.message, /ECONNRESET|10\.0\.0\.1/)
 })
 
 test('a token-cap finish reports truncation', async () => {

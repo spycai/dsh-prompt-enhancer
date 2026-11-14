@@ -336,7 +336,10 @@ window.__ModuleLoader__.load({
       const applyResult = (payload, snapshot) => {
         if (!canWriteDraft) return
         if (draftRef.current !== snapshot) {
-          setPending({ text: payload.text })
+          // Keep the ORIGINAL draft with the pending result. applyPending used to
+          // record the current draft here, so after the user edited mid-flight
+          // the undo button restored their edit instead of what they first wrote.
+          setPending({ text: payload.text, snapshot })
           flash(tr(t, 'changed', EN.changed), 'plain')
           return
         }
@@ -352,7 +355,7 @@ window.__ModuleLoader__.load({
       const applyPending = () => {
         if (pending === null || !canWriteDraft) return
         inputActions.setDraft(pending.text)
-        setOriginal(draft)
+        setOriginal(pending.snapshot)
         setEnhanced(pending.text)
         setUndoUntil(Date.now() + UNDO_WINDOW_MS)
         setPending(null)

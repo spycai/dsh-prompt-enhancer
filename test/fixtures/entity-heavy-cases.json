@@ -1,0 +1,201 @@
+[
+  {
+    "id": "e01",
+    "category": "entity-heavy",
+    "input": "把 3.5% 的增长率、同比 12.7%、2026年11月的数据整理成月报",
+    "note": "多个数字必须保真",
+    "expect": {
+      "mustPreserve": [
+        "3.5%",
+        "12.7%",
+        "2026年11月"
+      ],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "e02",
+    "category": "entity-heavy",
+    "input": "写个通知：11月20日前提交2026年度预算表，联系人李工，电话 010-88886666",
+    "note": "日期+电话+人名",
+    "expect": {
+      "mustPreserve": [
+        "11月20日",
+        "2026年度",
+        "李工",
+        "010-88886666"
+      ],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "e03",
+    "category": "entity-heavy",
+    "input": "帮我把 README.md 里的安装步骤改写得更清楚，保留 v1.4.2 版本号",
+    "note": "文件名+版本号",
+    "expect": {
+      "mustPreserve": [
+        "README.md",
+        "v1.4.2"
+      ],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "e04",
+    "category": "entity-heavy",
+    "input": "分析这份数据：Q1 收入 1280 万，Q2 收入 1450 万，Q3 收入 1190 万",
+    "note": "三个数字",
+    "expect": {
+      "mustPreserve": [
+        "1280",
+        "1450",
+        "1190"
+      ],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "e05",
+    "category": "entity-heavy",
+    "input": "把 2026-11-14 到 2026-12-31 的排期做成甘特图",
+    "note": "两个完整日期",
+    "expect": {
+      "mustPreserve": [
+        "2026-11-14",
+        "2026-12-31"
+      ],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "e06",
+    "category": "entity-heavy",
+    "input": "给 @张三 和 @李四 各写一份项目复盘模板，项目代号 PRJ-2026-018",
+    "note": "两个mention+代号",
+    "expect": {
+      "mustPreserve": [
+        "@张三",
+        "@李四",
+        "PRJ-2026-018"
+      ],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "e07",
+    "category": "entity-heavy",
+    "input": "把 v1.4.2 升级到 v2.0.0 的步骤写成清单，接口地址 https://api.example.com/v2/users，超时设 3000 毫秒",
+    "note": "版本号 + URL + 毫秒数混合",
+    "expect": {
+      "deliverable": [
+        "清单",
+        "步骤",
+        "文档"
+      ],
+      "mustPreserve": [
+        "v1.4.2",
+        "v2.0.0",
+        "https://api.example.com/v2/users",
+        "3000"
+      ],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "e08",
+    "category": "entity-heavy",
+    "input": "汇总 2026 年营收 850 万元、毛利率 18.6%、同比增长 22%，做成一页简报",
+    "note": "年份 + 金额 + 两个百分比",
+    "expect": {
+      "deliverable": [
+        "简报",
+        "报告",
+        "汇总"
+      ],
+      "mustPreserve": [
+        "2026",
+        "850",
+        "18.6%",
+        "22%"
+      ],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "e09",
+    "category": "entity-heavy",
+    "input": "合并 report_final.docx 与 data_backup.csv，结果发到 team@company.com",
+    "note": "两个文件名 + 邮箱",
+    "expect": {
+      "deliverable": [
+        "合并",
+        "文件",
+        "结果"
+      ],
+      "mustPreserve": [
+        "report_final.docx",
+        "data_backup.csv",
+        "team@company.com"
+      ],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "e10",
+    "category": "entity-heavy",
+    "input": "把 v1.0、v1.1、v1.2 三个版本的变更记录整理成表格",
+    "note": "三个版本号连续出现",
+    "expect": {
+      "deliverable": [
+        "表格",
+        "变更记录"
+      ],
+      "mustPreserve": [
+        "v1.0",
+        "v1.1",
+        "v1.2"
+      ],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "e11",
+    "category": "entity-heavy",
+    "input": "按 PRJ-2026-018 和 PRJ-2026-019 分别列预算：12.5 万与 8.75 万",
+    "note": "两个项目代号 + 两个小数金额",
+    "expect": {
+      "deliverable": [
+        "预算",
+        "表格",
+        "清单"
+      ],
+      "mustPreserve": [
+        "PRJ-2026-018",
+        "PRJ-2026-019",
+        "12.5",
+        "8.75"
+      ],
+      "maxPlaceholders": 2
+    }
+  },
+  {
+    "id": "e12",
+    "category": "entity-heavy",
+    "input": "通知 3 位评委，12 月 5 日下午 2 点在 A 栋 301 室评审，各备 5 份材料",
+    "note": "人数 + 日期 + 时间 + 房间号 + 份数",
+    "expect": {
+      "deliverable": [
+        "通知"
+      ],
+      "mustPreserve": [
+        "3",
+        "12 月 5 日",
+        "2 点",
+        "301",
+        "5"
+      ],
+      "maxPlaceholders": 2
+    }
+  }
+]

@@ -1,6 +1,6 @@
 {
   "name": "dsh-prompt-enhancer",
-  "version": "1.5.4",
+  "version": "1.5.5",
   "description": "Composer button beside the model selector that rewrites the drafted message into a professional prompt.",
   "author": "spycai <9680871@qq.com>",
   "license": "MIT",
@@ -40,7 +40,9 @@
     "node": ">=20"
   },
   "scripts": {
-    "test": "node --test test/prompt.test.mjs test/enhance.integration.test.mjs test/boot-order.test.mjs"
+    "test": "node test/lib/run-tests.mjs",
+    "baseline": "node test/lib/baseline.mjs",
+    "baseline:check": "node test/lib/baseline.mjs --outputs test/fixtures/recorded/v1.5.5-proxy.json --compare test/fixtures/recorded/v1.5.4-proxy.json"
   },
   "peerDependencies": {
     "@deepseek-ai/schemastery": ">=3.18.1 <4.0.0"

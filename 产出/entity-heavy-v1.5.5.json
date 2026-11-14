@@ -1,0 +1,386 @@
+{
+  "label": "v1.5.5 entity-heavy",
+  "cases": "E:\\deepseek harmess\\01_主项目\\dsh-prompt-enhancer\\test\\fixtures\\entity-heavy-cases.json",
+  "generatedAt": "2026-11-14T03:25:24.287Z",
+  "deterministicMax": 60,
+  "summary": {
+    "overall": {
+      "count": 12,
+      "meanScore": 51.3,
+      "fidelityRate": 0.917,
+      "completenessRate": 0.75,
+      "sendabilityRate": 1,
+      "targetingRate": 1,
+      "concisionRate": 1,
+      "defaultRate": 1
+    },
+    "categories": {
+      "entity-heavy": {
+        "count": 12,
+        "meanScore": 51.3,
+        "fidelityRate": 0.917,
+        "completenessRate": 0.75,
+        "sendabilityRate": 1,
+        "targetingRate": 1,
+        "concisionRate": 1,
+        "defaultRate": 1
+      }
+    }
+  },
+  "missing": [],
+  "results": [
+    {
+      "id": "e01",
+      "category": "entity-heavy",
+      "score": 25,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": false,
+        "coverage": 0.6
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 6.95
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "e02",
+      "category": "entity-heavy",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 1
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 6.44
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "e03",
+      "category": "entity-heavy",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 1
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 7.45
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "e04",
+      "category": "entity-heavy",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 1
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 5.24
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "e05",
+      "category": "entity-heavy",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 1
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 8.06
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "e06",
+      "category": "entity-heavy",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 0.8
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 6.45
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "e07",
+      "category": "entity-heavy",
+      "score": 25,
+      "fidelity": {
+        "pass": false,
+        "missing": [
+          {
+            "kind": "url",
+            "value": "https://api.example.com/v2/users，超时设"
+          }
+        ]
+      },
+      "completeness": {
+        "pass": false,
+        "coverage": 0.8
+      },
+      "sendability": {
+        "pass": true,
+        "count": 0
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 3.26
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "e08",
+      "category": "entity-heavy",
+      "score": 25,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": false,
+        "coverage": 0.8
+      },
+      "sendability": {
+        "pass": true,
+        "count": 0
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 3.84
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "e09",
+      "category": "entity-heavy",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 0.8
+      },
+      "sendability": {
+        "pass": true,
+        "count": 0
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 4.35
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "e10",
+      "category": "entity-heavy",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 1
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 5.74
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "e11",
+      "category": "entity-heavy",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 1
+      },
+      "sendability": {
+        "pass": true,
+        "count": 0
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 3.8
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    },
+    {
+      "id": "e12",
+      "category": "entity-heavy",
+      "score": 60,
+      "fidelity": {
+        "pass": true,
+        "missing": []
+      },
+      "completeness": {
+        "pass": true,
+        "coverage": 0.8
+      },
+      "sendability": {
+        "pass": true,
+        "count": 1
+      },
+      "targeting": {
+        "pass": true,
+        "missingHints": []
+      },
+      "concision": {
+        "pass": true,
+        "ratio": 3.82
+      },
+      "defaults": {
+        "pass": true,
+        "markers": 1
+      }
+    }
+  ]
+}

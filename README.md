@@ -41,10 +41,15 @@
 ## 开发
 
 ```bash
-npm test          # 38 条测试（24 纯函数 + 14 集成）
+npm test              # 自动发现并运行 test/*.test.mjs（当前 80 条）
+npm run baseline:check # 提示词质量门禁：用已录制样本对比，回退即失败
 ```
 
+`npm test` 通过 `test/lib/run-tests.mjs` 自动发现所有 `*.test.mjs`，新增测试文件无需改配置；`test/manifest.test.mjs` 会校验 CI 的语法检查覆盖了全部生产源文件。
+
 Host 半在 `index.js`（路由、鉴权、模型调用），Client 半在 `client.js`（按钮、菜单、还原、取消），纯逻辑在 `lib/prompt.js`。测试用假 `ctx` + 假 `ctx.llm` 跑通真实 Host 代码，不需要真实模型。
+
+提示词质量基线、评估器与录制样本在 `test/lib/` 与 `test/fixtures/`；v2「许愿式」结构化输出目前是**设计稿**（`产出/v2设计稿/`），尚未接入运行时。
 
 更详细的实现说明、审计报告与维护备注见 [`产出/`](产出/)。
 
