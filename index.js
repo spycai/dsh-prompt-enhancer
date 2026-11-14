@@ -255,10 +255,11 @@ async function enhance(ctx, settings, recentCalls, body, signal) {
   if (limited !== undefined) return limited
 
   const mode = resolveMode(settings, body)
-  // Read the route's reasoning capability BEFORE the call so the Client learns
-  // the budget it should allow next time. A failure here is not fatal: an
-  // unreadable model simply keeps the short timeout.
-  const timeout = await describeRouteTimeout(ctx, route, signal)
+  // Timeout is a fixed, generous budget (see lib/timeout.js). No model probe
+  // happens here: v1.6.0 awaited llm.resolveModelInfo on the critical path and
+  // that adapter call could itself hang, reproducing the very timeout it was
+  // meant to prevent.
+  const timeoutMs = describeTimeout(undefined).timeoutMs
   const rewritten = await rewrite(ctx, settings, mode, route, checked.text, body.attachments, signal)
   const text = preserveMentions(rewritten.text, checked.mentions)
 
@@ -271,30 +272,8 @@ async function enhance(ctx, settings, recentCalls, body, signal) {
       mode,
       truncated: rewritten.truncated,
       mentions: checked.mentions,
-      reasoning: timeout.reasoning,
-      timeoutMs: timeout.timeoutMs,
+      timeoutMs,
     },
-  }
-}
-
-/**
- * Ask the model service whether this route reasons, without failing the request.
- *
- * `llm.resolveModelInfo` is optional (an adapter may not implement it) and can
- * reject for an unknown route, so every failure degrades to "not reasoning",
- * which selects the conservative timeout rather than a four-minute hang.
- *
- * @param ctx - Host context carrying `llm`.
- * @param {{provider: string, model: string}} route - Selected route.
- * @param {AbortSignal} [signal] - Caller cancellation.
- * @returns `{ timeoutMs, reasoning }`.
- */
-async function describeRouteTimeout(ctx, route, signal) {
-  try {
-    const info = await ctx.llm?.resolveModelInfo?.(route.provider, route.model, signal)
-    return describeTimeout(info)
-  } catch {
-    return describeTimeout(undefined)
   }
 }
 

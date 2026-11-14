@@ -1,6 +1,6 @@
 {
   "name": "dsh-prompt-enhancer",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "Composer button beside the model selector that rewrites the drafted message into a professional prompt.",
   "author": "spycai <9680871@qq.com>",
   "license": "MIT",

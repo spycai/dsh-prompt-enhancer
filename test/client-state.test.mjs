@@ -43,25 +43,21 @@ test('both paths set the same three-state shape', () => {
   assert.match(CLIENT, /setOriginal\(pending\.snapshot\)/)
 })
 
-test('the request timeout adapts to what the Host reported last time', () => {
-  // F2: a fixed 90 s budget failed on a reasoning model. The Host now reports
-  // `timeoutMs`, and the Client must both honour it and remember it.
-  assert.match(CLIENT, /let learnedTimeoutMs = 0/, 'the learned budget lives at module scope')
-  assert.match(CLIENT, /function readSuggestedTimeout\(payload\)/)
-  assert.match(CLIENT, /function currentTimeoutMs\(\)/)
-  assert.match(CLIENT, /\}, currentTimeoutMs\(\)\)/, 'the abort timer uses the adaptive value')
-  assert.match(CLIENT, /learnedTimeoutMs = suggested/, 'the Host suggestion is remembered')
+test('the request timeout is a fixed generous default, not a learned value', () => {
+  // F2, second attempt. v1.6.0 learned a budget from a successful response,
+  // which meant the FIRST click always used 90 s — exactly the click that
+  // timed out — and a timed-out call never learned anything. A constant is
+  // strictly more reliable here.
+  assert.match(CLIENT, /const DEFAULT_TIMEOUT_MS = 240000/)
+  assert.match(CLIENT, /}, DEFAULT_TIMEOUT_MS\)/, 'the abort timer uses the constant')
+  assert.doesNotMatch(CLIENT, /learnedTimeoutMs/, 'no learned state')
+  assert.doesNotMatch(CLIENT, /resolveModelInfo/, 'no model probe on the Client')
 })
 
-test('the timeout is clamped so a bad value cannot hang or fail instantly', () => {
-  assert.match(CLIENT, /MIN_TIMEOUT_MS = 30000/)
-  assert.match(CLIENT, /MAX_TIMEOUT_MS = 300000/)
-  assert.match(CLIENT, /Math\.min\(MAX_TIMEOUT_MS, Math\.max\(MIN_TIMEOUT_MS/)
-})
-
-test('the Client never trusts a timeout blindly', () => {
-  // A non-numeric or absent timeout must fall back to the default, not to NaN
-  // (which setTimeout treats as 0 and would abort every request immediately).
-  assert.match(CLIENT, /if \(!Number\.isFinite\(parsed\)\) return 0/)
-  assert.match(CLIENT, /learnedTimeoutMs > 0 \? learnedTimeoutMs : DEFAULT_TIMEOUT_MS/)
+test('a long timeout is safe because the button stays cancellable', () => {
+  // A 240 s wait is acceptable only because the user can abort at any moment.
+  // If cancellation were removed, a long timeout would become a stuck button.
+  assert.match(CLIENT, /const cancel = \(\) =>/)
+  assert.match(CLIENT, /abortRef\.current\?\.abort\(\)/)
+  assert.match(CLIENT, /if \(busy\) \{/)
 })

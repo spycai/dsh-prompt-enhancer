@@ -244,32 +244,27 @@ test('the default token budget leaves room for reasoning plus the answer', async
   assert.ok(h.calls[0].maxTokens >= 3000, `maxTokens ${h.calls[0].maxTokens} is too small for a reasoning model`)
 })
 
-test('a reasoning route reports the longer timeout so the Client can adapt', async () => {
-  const h = harness({ deltas: ['结果'] }, undefined, { info: { reasoning: { efforts: [{ id: 'high' }] } } })
+test('every response advertises the fixed timeout without probing the model', async () => {
+  // v1.6.0 awaited llm.resolveModelInfo() before the rewrite, and that adapter
+  // call could hang — the timeout fix caused a timeout. The Host must not make
+  // any model-metadata call on the request's critical path.
+  const h = harness({ deltas: ['结果'] })
   const result = await call(h, { text: '写个周报' })
-  assert.equal(result.payload.reasoning, true)
-  assert.ok(result.payload.timeoutMs >= 180000, `expected a long budget, got ${result.payload.timeoutMs}`)
+  assert.equal(result.status, 200)
+  assert.ok(result.payload.timeoutMs >= 180000, `expected the generous budget, got ${result.payload.timeoutMs}`)
+  assert.equal(h.modelInfoCalls.length, 0, 'no resolveModelInfo call may happen')
 })
 
-test('a chat route keeps the short timeout', async () => {
-  const h = harness({ deltas: ['结果'] }, undefined, { info: { reasoning: undefined } })
+test('a hanging adapter metadata method would be irrelevant now that it is never called', async () => {
+  // Even a harness whose resolveModelInfo never settles cannot affect a rewrite.
+  const h = harness({ deltas: ['结果'] }, undefined, {
+    get info() {
+      throw new Error('should not be read')
+    },
+  })
   const result = await call(h, { text: '写个周报' })
-  assert.equal(result.payload.reasoning, false)
-  assert.equal(result.payload.timeoutMs, 90000)
-})
-
-test('an unreadable model degrades to the short timeout instead of failing', async () => {
-  const h = harness({ deltas: ['结果'] }, undefined, { throws: new Error('adapter has no resolveModelInfo') })
-  const result = await call(h, { text: '写个周报' })
-  assert.equal(result.status, 200, 'a metadata failure must not fail the rewrite')
-  assert.equal(result.payload.reasoning, false)
-  assert.equal(result.payload.timeoutMs, 90000)
-})
-
-test('model info is read once per rewrite, not once per token', async () => {
-  const h = harness({ deltas: ['a', 'b', 'c'] }, undefined, { info: {} })
-  await call(h, { text: '写个周报' })
-  assert.equal(h.modelInfoCalls.length, 1)
+  assert.equal(result.status, 200)
+  assert.equal(h.modelInfoCalls.length, 0)
 })
 
 test('empty and oversized drafts are rejected before the model call', async () => {
