@@ -240,7 +240,7 @@ window.__ModuleLoader__.load({
      * rewrite, and a second click while running cancels it.
      */
     function PromptEnhanceButton(props) {
-      const { t, inputActions, useInput, useProjection } = props
+      const { t, inputActions, useInput, useProjection, useChat } = props
 
       const draftValue =
         typeof useInput === 'function' ? useInput((state) => (state === undefined ? '' : state.draft)) : ''
@@ -253,6 +253,15 @@ window.__ModuleLoader__.load({
           : 0
       const attachments = typeof attachmentValue === 'number' ? attachmentValue : 0
       const projection = typeof useProjection === 'function' ? useProjection('modelSelection') : undefined
+
+      // Conversation history is read LAZILY, at click time, not during render.
+      // `chat.legacy.nodes` is a flat ConversationNode[] rebuilt on every
+      // publication; subscribing to it would re-render this button on every
+      // token of every reply. `useChat` itself is only subscribed for a cheap
+      // readiness signal, and the nodes are pulled from the live store on click.
+      const chat = typeof useChat === 'function' ? useChat((state) => state) : undefined
+      const chatRef = React.useRef(chat)
+      chatRef.current = chat
 
       const draftRef = React.useRef(draft)
       draftRef.current = draft
@@ -375,6 +384,49 @@ window.__ModuleLoader__.load({
         flash(tr(t, 'applied', EN.applied), 'done')
       }
 
+      /**
+       * Read the recent transcript from the live chat store.
+       *
+       * Returns '' in a fresh session or when the store shape is not what we
+       * expect, so a missing API degrades to the previous context-free
+       * behaviour instead of failing the rewrite.
+       *
+       * Only `user` and `assistant` prose is kept: tool results, steering
+       * messages and turn errors describe the harness, not what was asked.
+       */
+      const readConversation = () => {
+        try {
+          const nodes = chatRef.current?.legacy?.nodes
+          if (!Array.isArray(nodes) || nodes.length === 0) return ''
+          const lines = []
+          for (const node of nodes) {
+            if (node === null || typeof node !== 'object') continue
+            const kind = node.kind
+            if (kind !== 'user' && kind !== 'assistant') continue
+            const blocks = kind === 'user' ? node.content : node.blocks
+            if (!Array.isArray(blocks)) continue
+            const parts = []
+            for (const block of blocks) {
+              if (block === null || typeof block !== 'object') continue
+              if (block.type !== 'text' && block.kind !== 'text') continue
+              if (typeof block.text !== 'string') continue
+              const piece = block.text.trim()
+              if (piece !== '') parts.push(piece)
+            }
+            const text = parts.join(' ').trim()
+            if (text === '') continue
+            const clipped = text.length > 800 ? `${text.slice(0, 800)}…` : text
+            lines.push(`${kind === 'user' ? '用户' : '助手'}：${clipped}`)
+          }
+          const recent = lines.slice(-8)
+          let transcript = recent.join('\n')
+          if (transcript.length > 4000) transcript = transcript.slice(transcript.length - 4000)
+          return transcript.trim()
+        } catch {
+          return ''
+        }
+      }
+
       const run = (chosenMode) => {
         if (!canWriteDraft) {
           setFailed(true)
@@ -395,6 +447,14 @@ window.__ModuleLoader__.load({
         const snapshot = draft
         const selection = projection?.next ?? projection?.lastUsed
         const body = { text: source, mode: chosenMode, attachments }
+        // History is context, so it is skipped for "polish only": that mode
+        // promises to touch wording and nothing else, and feeding it background
+        // invites drift. It is also skipped on a re-run of an already-enhanced
+        // draft, where the source is the user's original text.
+        if (chosenMode === 'rewrite') {
+          const context = readConversation()
+          if (context !== '') body.context = context
+        }
         if (typeof selection?.provider === 'string') body.provider = selection.provider
         if (typeof selection?.model === 'string') body.model = selection.model
 

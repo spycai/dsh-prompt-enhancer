@@ -61,3 +61,25 @@ test('a long timeout is safe because the button stays cancellable', () => {
   assert.match(CLIENT, /abortRef\.current\?\.abort\(\)/)
   assert.match(CLIENT, /if \(busy\) \{/)
 })
+
+test('conversation history is read lazily at click time, not during render', () => {
+  // F1. `chat.legacy.nodes` is a flat array rebuilt on every publication;
+  // reading it during render would re-render the button on every token.
+  assert.match(CLIENT, /const chatRef = React\.useRef\(chat\)/)
+  assert.match(CLIENT, /const readConversation = \(\) =>/)
+  assert.match(CLIENT, /chatRef\.current\?\.legacy\?\.nodes/)
+})
+
+test('context is sent only for the rewrite mode', () => {
+  // "Polish only" promises wording changes and nothing else, so background
+  // must not be sent there; otherwise the mode stops meaning what it says.
+  assert.match(CLIENT, /if \(chosenMode === 'rewrite'\) \{/)
+  assert.match(CLIENT, /if \(context !== ''\) body\.context = context/)
+})
+
+test('a missing or broken chat API degrades to no context', () => {
+  // The whole read is wrapped, so an absent hook or an unexpected store shape
+  // falls back to the previous context-free behaviour instead of failing.
+  assert.match(CLIENT, /useChat/, 'the hook is requested')
+  assert.match(CLIENT, /} catch \{\s*return ''\s*\}/s, 'a failure returns empty context')
+})

@@ -20,6 +20,7 @@ import {
   isTruncated,
   llmFailureMessage,
   preserveMentions,
+  randomNonce,
   resolveConfig,
   resolveMode,
   resolveRoute,
@@ -27,6 +28,7 @@ import {
   validateDraft,
 } from './lib/prompt.js'
 import { describeTimeout } from './lib/timeout.js'
+import { wrapContext } from './lib/context.js'
 
 export const inject = ['llm']
 
@@ -260,7 +262,22 @@ async function enhance(ctx, settings, recentCalls, body, signal) {
   // that adapter call could itself hang, reproducing the very timeout it was
   // meant to prevent.
   const timeoutMs = describeTimeout(undefined).timeoutMs
-  const rewritten = await rewrite(ctx, settings, mode, route, checked.text, body.attachments, signal)
+  // History arrives already shaped by the Client, but it is still untrusted:
+  // `wrapContext` re-tags it with this request's nonce so a past message that
+  // literally contains a closing tag cannot break out of the block.
+  const nonce = randomNonce()
+  const contextBlock = wrapContext(readContext(body), nonce)
+  const rewritten = await rewrite(
+    ctx,
+    settings,
+    mode,
+    route,
+    checked.text,
+    body.attachments,
+    signal,
+    contextBlock,
+    nonce,
+  )
   const text = preserveMentions(rewritten.text, checked.mentions)
 
   return {
@@ -275,6 +292,26 @@ async function enhance(ctx, settings, recentCalls, body, signal) {
       timeoutMs,
     },
   }
+}
+
+/**
+ * Read the conversation transcript the Client sent, if any.
+ *
+ * Treated as untrusted text: only a string of bounded length is accepted, and
+ * the caller re-tags it with a per-request nonce before it reaches the model.
+ * An oversized value is truncated from the front — the newest exchange is what
+ * the draft refers to, so older context is the safer thing to lose.
+ *
+ * @param {Record<string, unknown>} body - Parsed request body.
+ * @returns Transcript text, or '' when absent.
+ */
+function readContext(body) {
+  const raw = body?.context
+  if (typeof raw !== 'string') return ''
+  const trimmed = raw.trim()
+  if (trimmed === '') return ''
+  const limit = 8000
+  return trimmed.length > limit ? trimmed.slice(trimmed.length - limit) : trimmed
 }
 
 /**
@@ -325,9 +362,11 @@ function chargeRateLimit(settings, recentCalls) {
  * @param text - Trimmed composer draft.
  * @param attachmentCount - Composer attachments, when the Client reports them.
  * @param signal - Aborts when the caller drops the request.
+ * @param conversationContext - Wrapped history block, or ''.
+ * @param nonce - The same delimiter token used for the context block.
  * @returns `{ text, truncated }`.
  */
-async function rewrite(ctx, settings, mode, route, text, attachmentCount, signal) {
+async function rewrite(ctx, settings, mode, route, text, attachmentCount, signal, conversationContext = '', nonce) {
   const count =
     typeof attachmentCount === 'number' && Number.isFinite(attachmentCount)
       ? Math.max(0, Math.trunc(attachmentCount))
@@ -340,7 +379,12 @@ async function rewrite(ctx, settings, mode, route, text, attachmentCount, signal
     provider: route.provider,
     model: route.model,
     system: systemPromptFor(mode),
-    messages: [{ role: 'user', content: [{ type: 'text', text: buildUserMessage(text, count) }] }],
+    messages: [
+      {
+        role: 'user',
+        content: [{ type: 'text', text: buildUserMessage(text, count, nonce, conversationContext) }],
+      },
+    ],
     temperature: settings.temperature,
     maxTokens: settings.maxTokens,
     // Omitted unless configured, so the provider keeps its own default. On a
