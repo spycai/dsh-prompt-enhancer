@@ -217,6 +217,26 @@ test('a token-cap finish reports truncation', async () => {
   assert.equal(result.payload.truncated, true)
 })
 
+test('reasoningEffort is omitted by default so the provider keeps its own default', async () => {
+  const h = harness({ deltas: ['结果'] })
+  await call(h, { text: '写个周报' })
+  assert.equal('reasoningEffort' in h.calls[0], false)
+})
+
+test('a configured reasoningEffort reaches the model call', async () => {
+  const h = harness({ deltas: ['结果'] }, { reasoningEffort: 'low' })
+  await call(h, { text: '写个周报' })
+  assert.equal(h.calls[0].reasoningEffort, 'low')
+})
+
+test('the default token budget leaves room for reasoning plus the answer', async () => {
+  // Regression: 1400 was too small on a model that cannot disable thinking, so
+  // the whole budget went to reasoning and the Client hit its 90 s timeout.
+  const h = harness({ deltas: ['结果'] })
+  await call(h, { text: '写个周报' })
+  assert.ok(h.calls[0].maxTokens >= 3000, `maxTokens ${h.calls[0].maxTokens} is too small for a reasoning model`)
+})
+
 test('empty and oversized drafts are rejected before the model call', async () => {
   const h = harness({ deltas: ['x'] })
   assert.equal((await call(h, { text: '   ' })).payload.error.code, 'EMPTY_INPUT')

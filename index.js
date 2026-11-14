@@ -336,6 +336,10 @@ async function rewrite(ctx, settings, mode, route, text, attachmentCount, signal
     messages: [{ role: 'user', content: [{ type: 'text', text: buildUserMessage(text, count) }] }],
     temperature: settings.temperature,
     maxTokens: settings.maxTokens,
+    // Omitted unless configured, so the provider keeps its own default. On a
+    // reasoning model that cannot disable thinking this is the knob that keeps
+    // a rewrite from spending its whole token budget on reasoning.
+    ...(settings.reasoningEffort !== '' ? { reasoningEffort: settings.reasoningEffort } : {}),
     signal,
   })) {
     if (chunk.type === 'text-delta') {

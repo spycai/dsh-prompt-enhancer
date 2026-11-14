@@ -7,8 +7,12 @@
         # rewrite = 重写成完整提示词；polish = 只润色措辞（菜单里选什么就执行什么）
         mode: rewrite
         # 模型输出上限与温度；温度 0 让同一草稿的多次改写结果稳定
-        maxTokens: 1400
+        # 推理模型的思考 token 也算在 maxTokens 里，所以不要设得太小
+        maxTokens: 4000
         temperature: 0
+        # 推理强度（如 low / high）；留空跟随模型默认
+        # 改写很慢时先把它调成 low，再考虑换模型
+        reasoningEffort: ''
         # 输入草稿最长字符数
         maxInputChars: 12000
         # 返回文本硬上限，0 表示不额外截断
