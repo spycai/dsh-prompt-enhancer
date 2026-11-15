@@ -217,3 +217,60 @@ test('the elapsed timer stops once the request settles', () => {
   assert.match(body, /if \(phase !== 'busy'\) \{[\s\S]{0,80}return undefined/, 'no timer when idle')
   assert.match(body, /clearInterval\(timer\)/, 'the interval is cleaned up')
 })
+
+test('the panel starts from an inlined seed so it is never blank', () => {
+  // "Refresh shows nothing" was reported twice. An empty initial array made a
+  // failed load indistinguishable from a working empty library, so the panel now
+  // renders 25 built-in entries until the Host answers.
+  assert.match(CLIENT, /const FALLBACK_SEED_ROWS = \[/)
+  assert.match(CLIENT, /const FALLBACK_SEED = FALLBACK_SEED_ROWS\.map/)
+  assert.match(CLIENT, /useState\(FALLBACK_SEED\)/, 'records must start from the seed')
+  const rows = CLIENT.slice(CLIENT.indexOf('FALLBACK_SEED_ROWS = ['))
+  assert.ok((rows.match(/\["seed-/g) ?? []).length >= 20, 'the inlined seed must be populated')
+})
+
+test('a library failure names the endpoint it tried', () => {
+  assert.match(CLIENT, /lastFailure = `连不上 \$\{endpoint\}/)
+  assert.match(CLIENT, /lastFailure = `\$\{endpoint\} 未返回数据/)
+})
+// --- consistency between the Client copy and the lib source of truth ---------
+
+test('the panel category chips match lib/wishlist.js exactly', async () => {
+  // CATEGORIES exists twice: inlined in client.js (the Client factory cannot
+  // import an ESM module) and exported by lib/wishlist.js. Nothing enforced that
+  // they agree, so editing one produced an empty chip or a category the filter
+  // could never match.
+  const { CATEGORIES } = await import('../lib/wishlist.js')
+  const block = CLIENT.slice(CLIENT.indexOf('const CATEGORIES = ['))
+  const body = block.slice(0, block.indexOf(']'))
+  const clientKeys = [...body.matchAll(/key: '([a-z]+)'/g)].map((match) => match[1])
+
+  // `all` is a view, not a stored category, so it appears only in the Client.
+  assert.deepEqual(
+    clientKeys.filter((key) => key !== 'all'),
+    [...CATEGORIES],
+    'the chip order and keys must match the library vocabulary',
+  )
+  assert.equal(clientKeys[0], 'all', 'the all chip comes first')
+})
+
+test('the panel standards match lib/standards.js exactly', async () => {
+  const { STANDARDS } = await import('../lib/standards.js')
+  const block = CLIENT.slice(CLIENT.indexOf('const STANDARDS = ['))
+  const body = block.slice(0, block.indexOf(']'))
+  const clientKeys = [...body.matchAll(/key: '([a-z]+)'/g)].map((match) => match[1])
+  assert.deepEqual(clientKeys, STANDARDS.map((standard) => standard.key))
+})
+
+test('the panel scene and audience keys match lib/prompt.js', async () => {
+  const prompt = await import('../lib/prompt.js')
+  const sceneBlock = CLIENT.slice(CLIENT.indexOf('const SCENES = ['))
+  const sceneKeys = [...sceneBlock.slice(0, sceneBlock.indexOf(']')).matchAll(/key: '([a-z]+)'/g)].map(
+    (match) => match[1],
+  )
+  // Every key the panel can send must be one the Host recognises; otherwise the
+  // Host silently falls back to `general` and the choice does nothing.
+  for (const key of sceneKeys) {
+    assert.equal(prompt.resolveScene(key), key, `scene ${key} is unknown to the Host`)
+  }
+})

@@ -270,14 +270,14 @@ window.__ModuleLoader__.load({
           })
         } catch (error) {
           if (endpoint === workingLibraryEndpoint) workingLibraryEndpoint = null
-          lastFailure = `无法连接提示词宝库服务（${String(error?.message ?? 'network')}）`
+          lastFailure = `连不上 ${endpoint}（${String(error?.message ?? 'network')}）`
           continue
         }
         const payload = await response.json().catch(() => undefined)
         if (payload === undefined) {
           // A non-JSON answer means no route of ours served this path.
           if (endpoint === workingLibraryEndpoint) workingLibraryEndpoint = null
-          lastFailure = `提示词宝库路由未响应（HTTP ${String(response.status)}）`
+          lastFailure = `${endpoint} 未返回数据（HTTP ${String(response.status)}）`
           continue
         }
         workingLibraryEndpoint = endpoint
@@ -366,6 +366,75 @@ window.__ModuleLoader__.load({
       return message
     }
 
+    /**
+     * Storage key for the favourite ids.
+     *
+     * Favourites were held only in React state, so a page refresh silently
+     * discarded them — the button worked, nothing was kept. They are stored as
+     * plain id strings, never as records, so a rule change cannot resurrect a
+     * stale copy of a prompt.
+     */
+    const SAVED_KEY = 'dsh-wish-tree:saved'
+
+    /**
+     * Read the favourite ids, degrading to an empty list.
+     *
+     * @returns {string[]} Saved ids.
+     */
+    function loadSaved() {
+      try {
+        const raw = localStorage.getItem(SAVED_KEY)
+        if (typeof raw !== 'string' || raw === '') return []
+        const parsed = JSON.parse(raw)
+        return Array.isArray(parsed) ? parsed.filter((id) => typeof id === 'string') : []
+      } catch {
+        // Private mode or a blocked storage API: favourites simply do not persist.
+        return []
+      }
+    }
+
+    /**
+     * Persist the favourite ids, swallowing every failure.
+     *
+     * @param {string[]} ids - Ids to store.
+     */
+    function storeSaved(ids) {
+      try {
+        localStorage.setItem(SAVED_KEY, JSON.stringify(Array.isArray(ids) ? ids : []))
+      } catch {
+        /* a full or blocked quota must not break the panel */
+      }
+    }
+    /**
+     * Filter library records for display.
+     *
+     * Extracted from the render body so the rule set has a name and one place to
+     * change. `lib/wishlist.js` has an equivalent `searchLibrary` that the tests
+     * cover; the Client cannot import an ESM module, so the two must be kept in
+     * step by hand — the contract test in client-state asserts the rule shape.
+     *
+     * @param {object[]} records - Records to filter.
+     * @param {{ query?: string, category?: string, view?: string, saved?: string[] }} options - Filters.
+     * @returns {object[]} Matching records in source order.
+     */
+    function filterLibraryRecords(records, options = {}) {
+      if (!Array.isArray(records)) return []
+      const needle = typeof options.query === 'string' ? options.query.trim().toLowerCase() : ''
+      const category = typeof options.category === 'string' ? options.category : 'all'
+      const savedOnly = options.view === 'saved'
+      const savedSet = new Set(Array.isArray(options.saved) ? options.saved : [])
+
+      return records.filter((record) => {
+        if (record === null || typeof record !== 'object') return false
+        if (category !== 'all' && record.category !== category) return false
+        if (savedOnly && !savedSet.has(record.id)) return false
+        if (needle === '') return true
+        // Every whitespace-separated word must appear somewhere in title, body or
+        // tags, so a multi-word query narrows instead of widening.
+        const haystack = `${record.title ?? ''}\n${record.body ?? ''}\n${(record.tags ?? []).join(' ')}`.toLowerCase()
+        return needle.split(/\s+/).every((word) => haystack.includes(word))
+      })
+    }
     /** The one id shared by the sidebar icon and the `main` panel key. */
     const PANEL_KEY = 'wish-tree'
     /** Scene presets; keys only, the Host owns the wording. */
@@ -407,6 +476,66 @@ window.__ModuleLoader__.load({
       { key: 'writing', zh: '文案', en: 'Copy' },
     ]
 
+
+    /**
+     * Offline seed copy, inlined so the panel always has something to show.
+     *
+     * lib/seed.js is an ESM module the Client factory cannot import, so a
+     * trimmed copy (title + first 70 characters of body) lives here. When the
+     * Host route fails to answer, the panel falls back to these 25 entries
+     * instead of rendering an empty box — "Refresh shows nothing" was reported
+     * twice, and an empty list with no data is indistinguishable from a bug.
+     */
+    const FALLBACK_SEED_ROWS = [
+      ["seed-gen-01", "讲给我这个外行听", "general", "请把下面这件事讲给完全不懂这个领域的人听。先用一句话说清它是什么，再用两三个日常类比展开，最后告诉我接下来该学什么。不要用行话；实在避不开的…"],
+      ["seed-gen-02", "给我一份可执行的步骤", "general", "请把下面这个目标拆成分步骤的行动清单。每一步要写清做什么、大概花多久、做到什么程度算完成。把风险最高的一步放在最前面。最后告诉我今天就能开始…"],
+      ["seed-gen-03", "公平地对比几个方案", "general", "请用同一套标准对比下面这几个选项，做成表格，一行一个选项，列写成本、投入精力、风险和适配度。然后给出你的推荐，并说明最强的反对理由。你不得不…"],
+      ["seed-gen-04", "压缩但不能丢信息", "general", "请把下面的内容摘要成三层：一句话、五条要点、一小段话。原文里的数字、人名、日期一律原样保留。不要添加原文没有的信息。"],
+      ["seed-gen-05", "帮我找出漏掉的东西", "general", "请通读下面的材料，重点列出现在还缺什么，而不是哪里写错了。每一条缺失都要说清为什么重要、补什么证据能填上。按「补上之后会不会改变结论」排序。"],
+      ["seed-wri-01", "改写给特定的读者看", "writing", "请把下面的内容改写给指定的读者看。事实一律不变，只调整用词、句子长短和细节多少，使之贴合这位读者已经知道的东西。不要添加原文没有的说法。"],
+      ["seed-wri-02", "删掉三成还不伤意思", "writing", "请把下面的文字删掉大约三成，但不能丢掉任何事实或细微差别。去掉填充词、含糊的限定和重复表达。保留作者原本的语气，以及那些承担了意义的技术词。"],
+      ["seed-wri-03", "一封得体的工作邮件", "writing", "请就下面这件事写一封工作邮件。前两行就说清你要对方做什么，然后给最少的必要背景，最后写明期限。全文控制在 150 字以内，语气中性，不用感叹…"],
+      ["seed-wri-04", "让别人五秒内找到答案", "writing", "请把下面这段文字重新组织，使读者五秒钟内能找到任何一个答案。用短标题，一段只讲一件事，原文里一口气罗列的内容改成分条。内容一个字都不要少。"],
+      ["seed-cod-01", "要能跑的代码，不是草稿", "code", "请为下面这个任务写出完整可运行的代码。包含依赖导入、错误处理，以及一段简短的使用示例。说明语言版本和所有依赖的版本。不要留 TODO 占位；…"],
+      ["seed-cod-02", "先说清 bug 是什么", "code", "对下面这段出错的代码：先用一句话说它本来要做什么，再说什么情况实际发生了什么，然后结合代码给出最可能的原因。这些说完才提修改方案，并且只给能…"],
+      ["seed-cod-03", "只审正确性", "code", "请审查下面这段代码的正确性，不用管风格。逐条列出具体缺陷，写明出现在哪一行、什么输入会触发、期望结果与实际结果分别是什么。把确定的 bug …"],
+      ["seed-cod-04", "安全地重构", "code", "请在不改变外部可见行为的前提下重构下面的代码。每处改动用一句话说明理由，并指出有什么测试能发现回归。如果某处必须改变行为，请停下来把差异列给…"],
+      ["seed-ana-01", "先给结论", "analysis", "请分析下面的数据，按这个顺序回答：一句话结论、支撑它的三个最强事实（带数字）、最大的保留意见、还需要什么数据才会改变结论。不要复述数据本身来…"],
+      ["seed-ana-02", "替我核对数字", "analysis", "请审计下面材料里的数字。每一个都要说明：它内部是否自洽、它是跟什么在比较、这个比较是否公平。凡是看着像基数或分母有问题的，都要标出来。"],
+      ["seed-ana-03", "找根因，不是现象", "analysis", "针对下面这个情况，请把现象和原因分开。先列出所有可能的原因，再逐个说明什么证据能证实或排除它。最后给出最可能的那一个原因，以及验证它最省事的…"],
+      ["seed-des-01", "层级清楚的版面", "design", "请为下面这个界面设计版面。先指出唯一最重要的元素，再说阅读顺序，然后说哪些可以删掉。字号和间距用相对关系表达，不要写死像素。同时说明窄屏下怎…"],
+      ["seed-des-02", "无障碍要成为默认", "design", "请检查下面这个界面的无障碍问题，看对比度、焦点可见性、键盘顺序、标签和报错提示。每个问题都给出具体改法。会导致整个任务做不下去的，排在前面。"],
+      ["seed-des-03", "能引导操作的界面文案", "design", "请为下面这个流程写界面文案：按钮文字、空状态、错误提示和一个确认提示。每一句都要让用户知道发生了什么、接下来该干什么。不要用行话，不要怪用户…"],
+      ["seed-des-04", "演示稿：编辑级验收清单", "design", "交付前请按这张清单自查并修正不达标的地方：全文最多三种字号；每页只讲一个结论，且标题就是这个结论，而不是「产品功能」这类归类词；正文不超过五…"],
+      ["seed-des-05", "演示稿：先结构后装饰", "design", "请按这个顺序做，结构没定下来之前不要动手做视觉：第一步，用一句话写清观众看完之后要做什么；第二步，只写每一页的标题，列成清单；第三步，每个标…"],
+      ["seed-des-06", "演示稿：给清单，不给意见", "design", "请像一位资深设计负责人那样审下面这份演示稿，但结论要以清单形式给出，不要写成评价：每个问题都要写明页码、违反的是哪条规则、以及最小的修法。请…"],
+      ["seed-lea-01", "用一个完整例子教会我", "learning", "请用下面这个概念教我。先给一个从头到尾走通的完整例子，再给第二个例子但留最后一步让我自己填。然后指出大多数人通常在哪一步出错。"],
+      ["seed-lea-02", "配答案的练习题", "learning", "请就下面这个主题出一套练习题：五道题按难度递增，每题只考一个点。答案和解析放在最后，并用分隔线隔开，让我可以先自己做。其中要有一道题看起来相…"],
+      ["seed-lea-03", "考考我到底懂没懂", "learning", "请就下面这个主题问我五个问题，一次只问一个，等我回答之后再问下一个。每次回答后告诉我答对没有、漏了什么。在我尝试之前不要先公布正确答案。"],
+      ["seed-wri-05", "翻译并保住原意", "writing", "请把下面的内容翻译成英文。要求：不增不减信息，专有名词首次出现时保留原文并在括号里给中文；原文的语气和正式程度必须一致；数字、日期、单位按目…"],
+      ["seed-wri-06", "查重与雷同风险", "writing", "请检查下面的文字是否存在与常见表述高度雷同的部分。逐段标注风险等级（高/中/低），对高风险段落指出雷同的典型表达是什么，并给出两个改写方向。…"],
+      ["seed-wri-07", "一封有针对性的求职信", "writing", "请根据下面的岗位要求和个人经历写一封求职信。开头一段直接说明我能解决对方什么问题，中间用两段各讲一个具体经历并给出可核验的结果数字，结尾写清…"],
+      ["seed-wri-08", "标题给多个方向", "writing", "请为下面的内容生成 8 个候选标题，覆盖四种思路各 2 个：直陈结论、点出数字、提出反常识、给出利益。每个标题不超过 20 字，不要用问号和…"],
+      ["seed-cod-05", "审查技术文档", "code", "请审查下面的技术文档。逐条列出：哪句话会让读者产生歧义、哪个步骤缺了前提条件、哪个术语前后不一致。每条都要给出改写后的句子。不要评价文风，只…"],
+      ["seed-cod-06", "写正则并解释", "code", "请为下面的匹配需求写出正则表达式。要求：先写正则，再用一句话说明它匹配什么、不匹配什么；列出至少 3 个应该匹配和 3 个不应该匹配的例子并…"],
+      ["seed-cod-07", "规范的提交信息", "code", "请为下面的代码改动写一条提交信息。格式：第一行是祈使句摘要，不超过 50 字，说明改了什么；空一行；正文分点说明为什么改、有什么影响、是否需…"],
+      ["seed-ana-04", "找出论证里的逻辑漏洞", "analysis", "请检查下面这段论证，逐条列出其中的逻辑问题。每一条要写明：问题出现在哪句话、属于哪类谬误（如以偏概全、因果倒置、虚假两难）、以及补上什么前提…"],
+      ["seed-lea-04", "用提问带我想明白", "learning", "请用提问的方式帮我想清楚下面这件事，不要直接给答案。一次只问一个问题，根据我的回答决定下一个问题。目标是让我自己说出结论。如果我的回答里有明…"],
+    ]
+
+    /** Build records from the inlined rows, in the shape the panel renders. */
+    const FALLBACK_SEED = FALLBACK_SEED_ROWS.map(([id, title, category, body]) => ({
+      id,
+      title,
+      category,
+      tags: [],
+      body,
+      language: 'zh',
+      source: '内置库',
+      sourceUrl: '',
+      license: 'CC0-1.0',
+      fetchedAt: '',
+    }))
     /** Wand glyph. Inherits the control color so it matches the composer row. */
     function WandIcon() {
       return h(
@@ -514,8 +643,10 @@ window.__ModuleLoader__.load({
       const [basedOn, setBasedOn] = React.useState('')
       const [note, setNote] = React.useState(null)
 
-      const [records, setRecords] = React.useState([])
-      const [saved, setSaved] = React.useState([])
+      // Start from the inlined seed, not an empty array: a failed load used to
+      // leave the library literally blank with no way to tell why.
+      const [records, setRecords] = React.useState(FALLBACK_SEED)
+      const [saved, setSaved] = React.useState(loadSaved)
       const [libOpen, setLibOpen] = React.useState(true)
       const [libView, setLibView] = React.useState('browse')
       const [query, setQuery] = React.useState('')
@@ -590,18 +721,10 @@ window.__ModuleLoader__.load({
         return () => clearInterval(timer)
       }, [phase])
 
-      const visible = React.useMemo(() => {
-        const needle = query.trim().toLowerCase()
-        const savedSet = new Set(saved)
-        return records.filter((record) => {
-          if (record === null || typeof record !== 'object') return false
-          if (category !== 'all' && record.category !== category) return false
-          if (libView === 'saved' && !savedSet.has(record.id)) return false
-          if (needle === '') return true
-          const haystack = `${record.title ?? ''}\n${record.body ?? ''}\n${(record.tags ?? []).join(' ')}`.toLowerCase()
-          return needle.split(/\s+/).every((word) => haystack.includes(word))
-        })
-      }, [records, query, category, libView, saved])
+      const visible = React.useMemo(
+        () => filterLibraryRecords(records, { query, category, view: libView, saved }),
+        [records, query, category, libView, saved],
+      )
 
       const refreshLibrary = () => {
         if (libLoading) return
@@ -700,7 +823,11 @@ window.__ModuleLoader__.load({
       }
 
       const toggleSave = (id) => () =>
-        setSaved((current) => (current.includes(id) ? current.filter((v) => v !== id) : [id, ...current]))
+        setSaved((current) => {
+          const next = current.includes(id) ? current.filter((value) => value !== id) : [id, ...current]
+          storeSaved(next)
+          return next
+        })
 
       const field = (labelText, value, onChange, options, lang) =>
         h(

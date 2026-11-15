@@ -34,9 +34,10 @@ import {
 import { describeTimeout } from './lib/timeout.js'
 import { wrapContext } from './lib/context.js'
 import { getSeedRecords } from './lib/seed.js'
-import { findRecord, normalizeLibrary, searchLibrary, toggleSaved } from './lib/wishlist.js'
-import { REMOTE_SOURCES, fetchSource, fetchAllSources, refreshDecision, mergeLibraries } from './lib/sources.js'
+import { findRecord, normalizeLibrary } from './lib/wishlist.js'
+import { REMOTE_SOURCES, fetchAllSources, refreshDecision, mergeLibraries } from './lib/sources.js'
 import { buildStandardsBlock } from './lib/standards.js'
+import { reclassifyRecords } from './lib/classify.js'
 import { readCache, resolveProfileDir, writeCache } from './lib/library-cache.js'
 
 /**
@@ -295,35 +296,46 @@ async function respond(ctx, settings, bodyLimit, recentCalls, request) {
  * @returns {Promise<void>} Resolves once the response is written.
  */
 async function handleLibraryNode(ctx, req, res) {
-  const connection = ctx.get('connection')
-  if (connection !== undefined) {
-    let admission
-    try {
-      admission = connection.admit({ headers: req.headers })
-    } catch {
-      admission = { rejection: 401 }
-    }
-    if (admission.rejection !== undefined) {
-      sendJson(res, admission.rejection, {
-        error: { code: 'UNAUTHORIZED', message: 'This route requires a browser session.' },
-      })
-      return
-    }
-  }
-
+  // Everything is inside the try, including the admission read: a throw before
+  // this point produced an unhandled rejection with no response at all, and the
+  // Client could only report a generic failure.
   try {
+    const connection = ctx.get('connection')
+    if (connection !== undefined) {
+      let admission
+      try {
+        admission = connection.admit({ headers: req.headers })
+      } catch {
+        admission = { rejection: 401 }
+      }
+      if (admission.rejection !== undefined) {
+        sendJson(res, admission.rejection, {
+          error: { code: 'UNAUTHORIZED', message: 'This route requires a browser session.' },
+        })
+        return
+      }
+    }
+
     if (req.method !== 'POST') {
       res.setHeader('allow', 'POST')
       sendJson(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'Use POST.' } })
       return
     }
+
     const body = await readJsonBody(req, LIBRARY_BODY_LIMIT)
     const action = typeof body?.action === 'string' ? body.action : 'list'
     const payload = await libraryPayload(action, body, { profileDir: resolveProfileDir(ctx) })
     sendJson(res, 200, payload)
   } catch (error) {
-    const outcome = failureOutcome(error)
-    sendJson(res, outcome.status, outcome.payload)
+    warn(ctx, 'library route failed', error)
+    // Name the failure concretely. The generic "model call failed" fallback hid
+    // what was actually wrong and sent the search in the wrong direction, so the
+    // response now carries the error class and the first line of its message.
+    const name = String(error?.name ?? 'Error')
+    const detail = String(error?.message ?? '').split('\n')[0].slice(0, 200)
+    sendJson(res, 500, {
+      error: { code: 'LIBRARY_FAILED', message: `宝库处理失败（${name}: ${detail || 'no message'}）` },
+    })
   }
 }
 
@@ -486,23 +498,30 @@ function readContext(body) {
  * @returns The JSON response.
  */
 async function respondLibrary(ctx, request) {
-  let body
   try {
-    body = await readRequestJson(request, LIBRARY_BODY_LIMIT)
-  } catch (error) {
-    const outcome = failureOutcome(error)
-    return new Response(JSON.stringify(outcome.payload), {
-      status: outcome.status,
+    const body = await readRequestJson(request, LIBRARY_BODY_LIMIT)
+    const action = typeof body?.action === 'string' ? body.action : 'list'
+    const payload = await libraryPayload(action, body, { profileDir: resolveProfileDir(ctx) })
+    return new Response(JSON.stringify(payload), {
+      status: 200,
       headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
     })
+  } catch (error) {
+    // Same reasoning as the Node handler: report the class and first line so the
+    // Client can show something actionable instead of a generic failure.
+    warn(ctx, 'library bridge request failed', error)
+    const name = String(error?.name ?? 'Error')
+    const detail = String(error?.message ?? '').split('\n')[0].slice(0, 200)
+    return new Response(
+      JSON.stringify({
+        error: { code: 'LIBRARY_FAILED', message: `宝库处理失败（${name}: ${detail || 'no message'}）` },
+      }),
+      {
+        status: 500,
+        headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
+      },
+    )
   }
-
-  const action = typeof body?.action === 'string' ? body.action : 'list'
-  const payload = await libraryPayload(action, body, { profileDir: resolveProfileDir(ctx) })
-  return new Response(JSON.stringify(payload), {
-    status: 200,
-    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
-  })
 }
 
 /**
@@ -524,7 +543,10 @@ export async function libraryPayload(action, body, deps = {}) {
     // prompt and drop back to the seed, which made "the library grows" untrue.
     const cached = profileDir === undefined ? undefined : readCache(profileDir)
     if (cached !== undefined && cached.records.length > 0) {
-      const merged = mergeLibraries(seed, cached.records)
+      // Recompute every stored category against the CURRENT rules. Without this,
+      // editing a classify rule left old records on their old category until
+      // the next refresh."
+      const merged = mergeLibraries(seed, reclassifyRecords(cached.records))
       return {
         ok: true,
         action: 'list',
@@ -533,7 +555,21 @@ export async function libraryPayload(action, body, deps = {}) {
         fetchedAt: cached.fetchedAt,
       }
     }
-    return { ok: true, action: 'list', records: seed, source: 'seed', fetchedAt: '' }
+    // Carry a diagnostic when the cache could not be used. Without it the panel
+    // can only say "built-in library", which does not distinguish "no profile
+    // directory" from "cache file present but unreadable" — the two cases that
+    // actually needed different fixes.
+    return {
+      ok: true,
+      action: 'list',
+      records: seed,
+      source: 'seed',
+      fetchedAt: '',
+      diag: {
+        profileDir: typeof profileDir === 'string' ? profileDir : null,
+        cacheFound: cached !== undefined,
+      },
+    }
   }
 
   // Fetch every declared source. One source being down must not lose the other,

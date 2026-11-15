@@ -133,13 +133,47 @@ test('writing to an impossible path reports failure instead of throwing', () => 
   assert.equal(wrote, false)
 })
 
-test('resolveProfileDir prefers an explicit directory', () => {
-  assert.equal(resolveProfileDir({ profileDir: 'C:/p' }), 'C:/p')
-  assert.equal(resolveProfileDir({ baseDir: 'C:/b' }), 'C:/b')
+test('resolveProfileDir prefers a directory exposed through ctx.get', () => {
+  // Only ctx.get is probed. Reading ctx.profileDir directly is what threw
+  // `cannot get property "profileDir" without inject`.
+  assert.equal(resolveProfileDir({ get: (name) => (name === 'profileDir' ? 'C:/p' : undefined) }), 'C:/p')
+  assert.equal(resolveProfileDir({ get: (name) => (name === 'baseDir' ? 'C:/b' : undefined) }), 'C:/b')
+  assert.equal(resolveProfileDir({ get: () => undefined }).endsWith('desktop'), true)
 })
 
 test('resolveProfileDir falls back to the DSH home layout', () => {
   const resolved = resolveProfileDir({})
   assert.ok(typeof resolved === 'string' && resolved.length > 0)
   assert.match(resolved.replace(/\\/g, '/'), /profiles\/desktop$/)
+})
+
+test('an un-injected ctx property does not throw', () => {
+  // Regression guard for the bug that broke the whole library route:
+  // `ctx.profileDir` is an injected-service proxy in Cordis, and touching one
+  // that was never declared throws `cannot get property "profileDir" without
+  // inject`. resolveProfileDir read it directly, so every library request failed
+  // with a generic error while the cache sat on disk untouched.
+  const hostile = new Proxy(
+    {
+      get(name) {
+        throw new Error(`cannot get property "${String(name)}" without inject`)
+      },
+    },
+    {
+      get(target, prop) {
+        if (prop === 'get') return target.get
+        throw new Error(`cannot get property "${String(prop)}" without inject`)
+      },
+    },
+  )
+  const resolved = resolveProfileDir(hostile)
+  assert.ok(typeof resolved === 'string' && resolved.length > 0, 'a fallback must still resolve')
+  assert.match(resolved.replace(/\\/g, '/'), /profiles\/desktop$/)
+})
+
+test('a ctx with no get method is tolerated', () => {
+  for (const ctx of [undefined, null, {}, { get: 'not a function' }]) {
+    const resolved = resolveProfileDir(ctx)
+    assert.ok(typeof resolved === 'string' && resolved.length > 0)
+  }
 })

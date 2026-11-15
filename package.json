@@ -1,6 +1,6 @@
 {
   "name": "dsh-wish-tree",
-  "version": "1.8.4",
+  "version": "1.8.7",
   "description": "许愿树：输入一句想法，输出可直接使用的专业提示词。带独立面板与提示词宝库。",
   "author": "spycai <9680871@qq.com>",
   "license": "MIT",

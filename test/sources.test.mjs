@@ -15,7 +15,6 @@ import {
   LIBRARY_LANGUAGE,
   PARTIAL_RETRY_MS,
   REMOTE_SOURCES,
-  categoryFromType,
   fetchAllSources,
   fetchSource,
   isRefreshDue,
@@ -81,14 +80,6 @@ test('parseCsv tolerates CRLF, blank lines and empty input', () => {
   assert.deepEqual(parseCsv('   '), [])
 })
 
-test('categoryFromType maps the upstream columns onto our vocabulary', () => {
-  assert.equal(categoryFromType('TEXT', 'FALSE'), 'general')
-  assert.equal(categoryFromType('IMAGE', 'FALSE'), 'design')
-  assert.equal(categoryFromType('DEV', 'FALSE'), 'code')
-  assert.equal(categoryFromType('TEXT', 'TRUE'), 'code')
-  assert.equal(categoryFromType('', ''), 'general')
-  assert.equal(categoryFromType(undefined, undefined), 'general')
-})
 
 test('rowsToRecords carries provenance and stamps the source licence', () => {
   const records = rowsToRecords(

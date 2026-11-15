@@ -7,6 +7,7 @@
  */
 
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 
 import { getSeedRecords, SEED_RECORDS } from '../lib/seed.js'
@@ -98,4 +99,17 @@ test('the deck standards express checklists, never a persona', () => {
 test('the design category now has enough references to be useful', () => {
   const count = SEED_RECORDS.filter((record) => record.category === 'design').length
   assert.ok(count >= 6, `expected at least 6 design entries, got ${count}`)
+})
+
+test('README states the real seed count', () => {
+  // The count in the docs is written by hand, so a rule or seed change could
+  // leave it wrong with nothing to catch it. Only the seed number is asserted:
+  // the test count in that file changes every release and would make this
+  // brittle for no benefit.
+  const readme = readFileSync(new URL('../README.md', import.meta.url), 'utf8')
+  const stated = [...readme.matchAll(/内置\s*(\d+)\s*条/g)].map((match) => Number(match[1]))
+  assert.ok(stated.length > 0, 'README must state the seed count')
+  for (const value of stated) {
+    assert.equal(value, SEED_RECORDS.length, `README says ${value}, seed has ${SEED_RECORDS.length}`)
+  }
 })
