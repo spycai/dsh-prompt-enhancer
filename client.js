@@ -84,6 +84,8 @@ window.__ModuleLoader__.load({
       copy: 'Copy',
       sendBack: 'Use in composer',
       sentBack: 'Written into the composer',
+      sentBackWhere: 'Written into the composer — it is on the chat view.',
+      sentBackGo: 'Go to chat →',
       libraryTitle: 'Prompt library',
       librarySearch: 'Search prompts',
       librarySaved: 'Saved',
@@ -94,6 +96,8 @@ window.__ModuleLoader__.load({
       libraryNotLoaded: 'The library did not load. Press Refresh to try again.',
       libraryUse: 'Use as reference',
       libraryUsing: 'Referencing',
+      libraryHowTo: 'Pick one and press 「Use as reference」 — the model follows its structure, not its topic.',
+      referencing: 'Reference: ',
       librarySave: 'Save',
       libraryUnsave: 'Saved',
       libraryLicence: 'Licence',
@@ -103,6 +107,12 @@ window.__ModuleLoader__.load({
       fillPlaceholder: 'Your answer',
       checkOk: 'Names the goal, format, audience and constraint',
       checkMissing: 'Still missing: ',
+      checkFixPrefix: 'Add ',
+      appliedLabel: 'Applied: ',
+      defaultsTitle: 'I decided these — change any of them',
+      presetSave: 'Save this combination',
+      presetSaved: 'Combination saved',
+      exampleHint: 'Try: ', 
       refineTitle: 'Adjust this prompt',
       refinePlaceholder: 'e.g. cut it to 8 pages, use a more formal tone',
       refineGo: 'Adjust',
@@ -159,6 +169,8 @@ window.__ModuleLoader__.load({
       copy: '复制',
       sendBack: '回填到输入框',
       sentBack: '已写入输入框',
+      sentBackWhere: '已写入对话框，只是当前面板看不到它。',
+      sentBackGo: '切回对话 →',
       libraryTitle: '提示词宝库',
       librarySearch: '搜索提示词',
       librarySaved: '收藏',
@@ -169,6 +181,8 @@ window.__ModuleLoader__.load({
       libraryNotLoaded: '宝库没有加载成功 —— 请点「刷新」重试',
       libraryUse: '作为参考',
       libraryUsing: '参考中',
+      libraryHowTo: '挑一条点「作为参考」，模型会照着它的结构写，但内容还是你的。',
+      referencing: '正在参考：',
       librarySave: '收藏',
       libraryUnsave: '已收藏',
       libraryLicence: '许可',
@@ -178,6 +192,12 @@ window.__ModuleLoader__.load({
       fillPlaceholder: '填写后自动替换',
       checkOk: '目标、格式、受众、约束都齐了',
       checkMissing: '还缺：',
+      checkFixPrefix: '补上',
+      appliedLabel: '本次应用：',
+      defaultsTitle: '这些是我替你定的，点一下就能改',
+      presetSave: '存下这套选择',
+      presetSaved: '已保存这套组合',
+      exampleHint: '试试：',
       refineTitle: '调整这份提示词',
       refinePlaceholder: '例如：压到 8 页、语气更正式',
       refineGo: '调整',
@@ -227,50 +247,87 @@ window.__ModuleLoader__.load({
       '.dsh-pe-hint{color:var(--dsw-alias-label-secondary);font-size:11px;line-height:14px}',
       '@keyframes dsh-pe-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}',
       '@media (prefers-reduced-motion: reduce){.dsh-pe-btn[data-busy="true"] svg{animation:none;opacity:.6}}',
-      // ---- v1.8 panel ----
-      '.dsh-wt-panel{display:flex;flex-direction:column;height:100%;min-height:0;overflow:auto;padding:20px 24px 28px;gap:16px;box-sizing:border-box}',
-      '.dsh-wt-head{display:flex;flex-direction:column;gap:4px}',
-      '.dsh-wt-title{font-size:18px;font-weight:600;line-height:26px;color:var(--dsw-alias-label-primary);margin:0}',
+      // ---- panel: 28 classes, one-to-one with the JSX ----
+      // Every rule reads a --dsw-alias-* token so light and dark follow the host
+      // theme without a second palette living here.
+      '.dsh-wt-panel{display:flex;flex-direction:column;height:100%;min-height:0;overflow:auto;padding:24px 28px 32px;gap:22px;box-sizing:border-box;scrollbar-width:thin;scrollbar-color:var(--dsw-alias-border-l1) transparent}',
+      '.dsh-wt-panel::-webkit-scrollbar{width:10px;height:10px}',
+      '.dsh-wt-panel::-webkit-scrollbar-thumb{background:var(--dsw-alias-border-l1);border-radius:6px;border:3px solid transparent;background-clip:content-box}',
+      '.dsh-wt-head{display:flex;flex-direction:column;gap:6px}',
+      '.dsh-wt-title{font-size:18px;font-weight:600;line-height:26px;letter-spacing:-0.01em;color:var(--dsw-alias-label-primary);margin:0}',
       '.dsh-wt-sub{font-size:13px;line-height:20px;color:var(--dsw-alias-label-secondary);margin:0}',
-      '.dsh-wt-rename{font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary);padding:6px 10px;border:1px solid var(--dsw-alias-border-l1);border-radius:6px;background:var(--dsw-alias-bg-layer-2);align-self:flex-start}',
-      '.dsh-wt-section{display:flex;flex-direction:column;gap:8px}',
-      '.dsh-wt-label{font-size:12px;font-weight:600;line-height:18px;color:var(--dsw-alias-label-secondary)}',
-      '.dsh-wt-textarea{width:100%;min-height:88px;resize:vertical;padding:10px 12px;border:1px solid var(--dsw-alias-border-l1);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font-size:13px;line-height:20px;font-family:inherit;box-sizing:border-box}',
-      '.dsh-wt-textarea:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}',
+      '.dsh-wt-rename{font-size:11px;line-height:18px;color:var(--dsw-alias-label-secondary);opacity:.85;padding:1px 0 1px 10px;border-left:2px solid var(--dsw-alias-border-l1);align-self:flex-start;max-width:100%}',
+      '.dsh-wt-section{display:flex;flex-direction:column;gap:10px}',
+      '.dsh-wt-label{font-size:12px;font-weight:600;line-height:18px;letter-spacing:0.02em;color:var(--dsw-alias-label-secondary)}',
+      '.dsh-wt-textarea{width:100%;min-height:96px;resize:vertical;padding:12px 14px;border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font-size:13px;line-height:22px;font-family:inherit;box-sizing:border-box;transition:border-color .12s ease}',
+      '.dsh-wt-textarea::placeholder{color:var(--dsw-alias-label-secondary);opacity:.7}',
+      '.dsh-wt-textarea:hover{border-color:var(--dsw-alias-label-secondary)}',
+      '.dsh-wt-textarea:focus{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px;border-color:var(--dsw-alias-brand-primary)}',
       '.dsh-wt-row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}',
-      '.dsh-wt-field{display:flex;flex-direction:column;gap:6px;min-width:150px}',
-      '.dsh-wt-select{padding:6px 10px;border:1px solid var(--dsw-alias-border-l1);border-radius:6px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font-size:13px;line-height:20px;font-family:inherit}',
-      '.dsh-wt-primary{padding:8px 20px;border:0;border-radius:8px;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-inverse, #fff);font-size:13px;font-weight:600;line-height:20px;cursor:pointer;font-family:inherit}',
-      '.dsh-wt-primary:hover:not(:disabled){opacity:.9}',
-      '.dsh-wt-primary:disabled{cursor:default;opacity:.5}',
+      '.dsh-wt-field{display:flex;flex-direction:column;gap:6px;min-width:140px;flex:0 1 auto}',
+      '.dsh-wt-select{padding:7px 10px;border:1px solid var(--dsw-alias-border-l1);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font-size:13px;line-height:20px;font-family:inherit;cursor:pointer;transition:border-color .12s ease}',
+      '.dsh-wt-select:hover{border-color:var(--dsw-alias-label-secondary)}',
+      '.dsh-wt-select:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}',
+      '.dsh-wt-primary{padding:9px 22px;border:0;border-radius:8px;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-inverse,#fff);font-size:13px;font-weight:600;line-height:20px;letter-spacing:0.01em;cursor:pointer;font-family:inherit;transition:opacity .12s ease}',
+      '.dsh-wt-primary:hover:not(:disabled){opacity:.88}',
+      '.dsh-wt-primary:active:not(:disabled){opacity:.96}',
+      '.dsh-wt-primary:disabled{cursor:default;opacity:.42}',
       '.dsh-wt-primary:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}',
-      '.dsh-wt-ghost{padding:5px 12px;border:1px solid var(--dsw-alias-border-l1);border-radius:6px;background:transparent;color:var(--dsw-alias-label-primary);font-size:12px;line-height:18px;cursor:pointer;font-family:inherit}',
-      '.dsh-wt-ghost:hover:not(:disabled){background:var(--dsw-alias-bg-layer-2)}',
-      '.dsh-wt-ghost:disabled{cursor:default;opacity:.5}',
-      '.dsh-wt-ghost[data-on="true"]{background:var(--dsw-alias-bg-layer-2);font-weight:600}',
+      '.dsh-wt-ghost{padding:5px 12px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--dsw-alias-label-secondary);font-size:12px;line-height:18px;cursor:pointer;font-family:inherit;transition:background .12s ease,color .12s ease,border-color .12s ease}',
+      '.dsh-wt-ghost:hover:not(:disabled){background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}',
+      '.dsh-wt-ghost:disabled{cursor:default;opacity:.45}',
+      '.dsh-wt-ghost[data-on="true"]{border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-brand-primary);background:var(--dsw-alias-bg-layer-2);font-weight:600}',
       '.dsh-wt-ghost:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}',
-      '.dsh-wt-result{padding:12px 14px;border:1px solid var(--dsw-alias-border-l1);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font-size:13px;line-height:22px;white-space:pre-wrap;word-break:break-word;max-height:320px;overflow:auto}',
-      '.dsh-wt-actions{display:flex;gap:8px;flex-wrap:wrap}',
-      '.dsh-wt-status{font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary)}',
+      '.dsh-wt-result{padding:14px 16px;border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font-size:13px;line-height:1.75;white-space:pre-wrap;word-break:break-word;max-height:340px;overflow:auto;scrollbar-width:thin}',
+      '.dsh-wt-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}',
+      '.dsh-wt-status{font-size:12px;line-height:19px;color:var(--dsw-alias-label-secondary)}',
       '.dsh-wt-status[data-tone="error"]{color:var(--dsw-alias-state-error-primary)}',
       '.dsh-wt-status[data-tone="done"]{color:var(--dsw-alias-state-success-primary)}',
-      '.dsh-wt-libhead{display:flex;gap:8px;flex-wrap:wrap;align-items:center}',
-      '.dsh-wt-search{flex:1;min-width:160px;padding:6px 10px;border:1px solid var(--dsw-alias-border-l1);border-radius:6px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font-size:13px;line-height:20px;font-family:inherit}',
+      '.dsh-wt-libhead{display:flex;gap:10px;flex-wrap:wrap;align-items:center}',
+      '.dsh-wt-search{flex:1 1 130px;min-width:0;padding:7px 11px;border:1px solid var(--dsw-alias-border-l1);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font-size:13px;line-height:20px;font-family:inherit;box-sizing:border-box;transition:border-color .12s ease}',
+      '.dsh-wt-search::placeholder{color:var(--dsw-alias-label-secondary);opacity:.7}',
+      '.dsh-wt-search:hover{border-color:var(--dsw-alias-label-secondary)}',
+      '.dsh-wt-search:focus{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px;border-color:var(--dsw-alias-brand-primary)}',
       '.dsh-wt-cats{display:flex;gap:6px;flex-wrap:wrap}',
-      '.dsh-wt-list{display:flex;flex-direction:column;gap:8px;max-height:360px;overflow:auto}',
-      '.dsh-wt-item{padding:10px 12px;border:1px solid var(--dsw-alias-border-l1);border-radius:8px;background:var(--dsw-alias-bg-layer-1);display:flex;flex-direction:column;gap:6px}',
-      '.dsh-wt-item[data-selected="true"]{border-color:var(--dsw-alias-brand-primary)}',
+      '.dsh-wt-list{display:flex;flex-direction:column;gap:10px;max-height:400px;overflow:auto;scrollbar-width:thin;padding-right:2px}',
+      '.dsh-wt-item{padding:12px 14px;border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-1);display:flex;flex-direction:column;gap:6px;transition:border-color .12s ease}',
+      '.dsh-wt-item:hover{border-color:var(--dsw-alias-label-secondary)}',
+      '.dsh-wt-item[data-selected="true"]{border-color:var(--dsw-alias-brand-primary);background:var(--dsw-alias-bg-layer-2)}',
       '.dsh-wt-itemtitle{font-size:13px;font-weight:600;line-height:20px;color:var(--dsw-alias-label-primary)}',
-      '.dsh-wt-itemmeta{font-size:11px;line-height:16px;color:var(--dsw-alias-label-secondary);display:flex;gap:10px;flex-wrap:wrap}',
-      '.dsh-wt-itembody{font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}',
-      '.dsh-wt-itemacts{display:flex;gap:6px;flex-wrap:wrap}',
-      '.dsh-wt-badge{display:inline-block;padding:1px 7px;border-radius:10px;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-inverse,#fff);font-size:10px;line-height:16px;font-weight:600;margin-left:8px;vertical-align:middle}',
-      '.dsh-wt-fills{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border:1px solid var(--dsw-alias-border-l1);border-radius:8px;background:var(--dsw-alias-bg-layer-2)}',
-      '.dsh-wt-fillrow{display:flex;align-items:center;gap:10px}',
-      '.dsh-wt-filllabel{font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary);min-width:72px;flex-shrink:0}',      '.dsh-wt-sidebtn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;line-height:0}',
+      '.dsh-wt-itemmeta{font-size:11px;line-height:16px;color:var(--dsw-alias-label-secondary);opacity:.8;display:flex;gap:12px;flex-wrap:wrap}',
+      '.dsh-wt-itembody{font-size:12px;line-height:1.6;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}',
+      '.dsh-wt-itemacts{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}',
+      '.dsh-wt-badge{display:inline-block;padding:1px 8px;border-radius:999px;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-inverse,#fff);font-size:10px;line-height:16px;font-weight:600;letter-spacing:0.02em;margin-left:8px;vertical-align:middle}',
+      '.dsh-wt-fills{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border:1px solid var(--dsw-alias-border-l1);border-left:2px solid var(--dsw-alias-brand-primary);border-radius:10px;background:var(--dsw-alias-bg-layer-2)}',
+      '.dsh-wt-fillrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}',
+      '.dsh-wt-filllabel{font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary);min-width:72px;flex-shrink:0}',
+      '.dsh-wt-sidebtn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;line-height:0;transition:background .12s ease,color .12s ease}',
       '.dsh-wt-sidebtn:hover{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}',
       '.dsh-wt-sidebtn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}',
     ].join('')
+
+    /**
+     * The layout service, captured at apply time.
+     *
+     * Used to move the user back to the chat view after writing into the composer:
+     * the panel is a separate `main` panel, so the text it writes appears on a
+     * view the user cannot currently see.
+     */
+    let layoutService = null
+
+    /**
+     * Switch the centre column back to the conversation.
+     *
+     * Every failure is swallowed: the panel must keep working on a host that does
+     * not expose `layout`, and the user still has the copied text either way.
+     */
+    function goToConversation() {
+      try {
+        layoutService?.selectPanel?.('conversation')
+      } catch {
+        /* no layout service, or an id it does not accept: stay where we are */
+      }
+    }
 
     /** Endpoint that answered once, so later clicks skip the probe order. */
     let workingEndpoint = null
@@ -410,6 +467,66 @@ window.__ModuleLoader__.load({
      * stale copy of a prompt.
      */
     const SAVED_KEY = 'dsh-wish-tree:saved'
+
+    /** Storage key for the saved choice presets. */
+    const PRESETS_KEY = 'dsh-wish-tree:presets'
+
+    /**
+     * Read saved presets, degrading to none.
+     *
+     * @returns {Array<{ name: string, scene: string, audience: string, standards: string[] }>}
+     */
+    function loadPresets() {
+      try {
+        const raw = localStorage.getItem(PRESETS_KEY)
+        if (typeof raw !== 'string' || raw === '') return []
+        const parsed = JSON.parse(raw)
+        if (!Array.isArray(parsed)) return []
+        return parsed.filter((item) => item !== null && typeof item === 'object' && typeof item.name === 'string')
+      } catch {
+        return []
+      }
+    }
+
+    /**
+     * Persist presets, swallowing every failure.
+     *
+     * @param {object[]} presets - Presets to store.
+     */
+    function storePresets(presets) {
+      try {
+        localStorage.setItem(PRESETS_KEY, JSON.stringify(Array.isArray(presets) ? presets : []))
+      } catch {
+        /* a blocked quota must not break the panel */
+      }
+    }
+
+    /**
+     * Substitute one default item in the prompt text.
+     *
+     * A deliberate duplicate of `replaceDefaultItem` in lib/placeholders.js: the
+     * Client factory cannot import an ESM module, so this one substitution has to
+     * exist twice. Kept as small as possible for that reason — only the single
+     * value changes, the rest of the marker and the sentence are untouched.
+     *
+     * @param {string} text - Prompt text.
+     * @param {string} item - Item to replace.
+     * @param {string} replacement - New value.
+     * @returns {string} Updated text.
+     */
+    function replaceDefaultItemLocal(text, item, replacement) {
+      if (typeof text !== 'string' || text === '' || typeof item !== 'string' || item === '') return text
+      if (typeof replacement !== 'string' || replacement.trim() === '') return text
+      const pattern = /[默认[：:]\s*([^\]]{1,200})\]/g
+      return text.replace(pattern, (whole, inner) => {
+        const stripped = String(inner).replace(/[，,、\s]*可改\s*$/, '')
+        const parts = stripped.split(/[、，,]/)
+        const index = parts.findIndex((part) => part.trim() === item)
+        if (index < 0) return whole
+        parts[index] = replacement.trim()
+        return `[默认：${parts.join('、')}，可改]`
+      })
+    }
 
     /**
      * Read the favourite ids, degrading to an empty list.
@@ -571,6 +688,36 @@ window.__ModuleLoader__.load({
       license: 'CC0-1.0',
       fetchedAt: '',
     }))
+    /**
+     * Turn a missing element name into a refinement instruction.
+     *
+     * The Host reports the gap in Chinese (目标 / 交付格式 / 受众 / 主要约束), so the
+     * instruction is built from that label rather than from a second table that
+     * could drift out of step with the Host's wording.
+     *
+     * @param {string} part - Missing element name from the Host.
+     * @param {boolean} zh - Whether the UI is Chinese.
+     * @returns {string} Instruction to send to the refine path.
+     */
+    function fixInstructionOf(part, zh) {
+      return zh
+        ? `补上「${part}」，其余内容保持不变`
+        : `Add the missing ${part}, keeping everything else unchanged`
+    }
+
+    /**
+     * Clickable starting points.
+     *
+     * Chosen to cover the three shapes ordinary work actually takes: produce a
+     * deliverable, write something to a person, and improve an existing text.
+     * Deliberately short — they demonstrate how little the user needs to type.
+     */
+    const EXAMPLE_IDEAS = [
+      { key: 'deck', zh: '下周给客户做产品演示，做个PPT', en: 'A product demo deck for a client next week' },
+      { key: 'weekly', zh: '给领导写一份这周的周报', en: 'A weekly update for my manager' },
+      { key: 'polish', zh: '把这段通知改得更客气一点', en: 'Make this notice sound more considerate' },
+    ]
+
     /** The source label the Host stamps on records the user saved themselves. */
     const PERSONAL_SOURCE = '个人'
 
@@ -697,6 +844,15 @@ window.__ModuleLoader__.load({
       const chatRef = React.useRef(chat)
       chatRef.current = chat
 
+      /**
+       * Whether to render Chinese.
+       *
+       * Declared first on purpose: several memoised values and handlers below
+       * consult it, and a `const` read before its declaration throws and takes the
+       * entire panel down with it.
+       */
+      const zh = /^zh/.test(typeof navigator !== 'undefined' ? navigator.language || '' : '')
+
       const [idea, setIdea] = React.useState('')
       const [scene, setScene] = React.useState('general')
       const [audience, setAudience] = React.useState('auto')
@@ -711,6 +867,19 @@ window.__ModuleLoader__.load({
       const [fills, setFills] = React.useState({})
       /** Elements the Host reports as missing, shown as a self-check line. */
       const [missingParts, setMissingParts] = React.useState([])
+      /** Assumptions the prompt marked as changeable, split into items. */
+      const [defaults, setDefaults] = React.useState([])
+      /** Which choices produced this result, as reported by the Host. */
+      const [applied, setApplied] = React.useState(null)
+      /** The default item currently being edited, or ''. */
+      const [editingDefault, setEditingDefault] = React.useState('')
+      const [editingValue, setEditingValue] = React.useState('')
+      /** Whether the last action wrote into the composer, so the hint can offer a jump. */
+      const [sentBackHint, setSentBackHint] = React.useState(false)
+
+      /** Saved scene/audience/standards combinations. */
+      const [presets, setPresets] = React.useState(loadPresets)
+
       /** Free-text refinement instruction. */
       const [refineText, setRefineText] = React.useState('')
 
@@ -773,6 +942,34 @@ window.__ModuleLoader__.load({
           cancelled = true
         }
       }, [])
+
+      /**
+       * The applied choices rendered as readable labels.
+       *
+       * Labels come from the same constants the selects use, so there is no second
+       * table to drift; the Host only sends keys.
+       */
+      const appliedLabels = React.useMemo(() => {
+        if (applied === null || typeof applied !== 'object') return []
+        const lang = zh ? 'zh' : 'en'
+        const find = (list, key) => list.find((item) => item.key === key)
+        const out = []
+        const sceneItem = find(SCENES, applied.scene)
+        if (sceneItem !== undefined && applied.scene !== 'general') out.push(sceneItem[lang])
+        const audienceItem = find(AUDIENCES, applied.audience)
+        if (audienceItem !== undefined && applied.audience !== 'auto') out.push(audienceItem[lang])
+        for (const key of Array.isArray(applied.standards) ? applied.standards : []) {
+          const standardItem = find(STANDARDS, key)
+          if (standardItem !== undefined) out.push(standardItem[lang])
+        }
+        return out
+      }, [applied, zh])
+
+      /** The library record currently selected as a reference, if any. */
+      const basedOnRecord = React.useMemo(
+        () => (basedOn === '' ? undefined : records.find((record) => record.id === basedOn)),
+        [basedOn, records],
+      )
 
       /**
        * The result with the user's answers substituted in.
@@ -876,8 +1073,12 @@ window.__ModuleLoader__.load({
               // renders them, so the rules live in one place.
               setPlaceholders(Array.isArray(payload.placeholders) ? payload.placeholders : [])
               setMissingParts(Array.isArray(payload.missing) ? payload.missing : [])
+              setDefaults(Array.isArray(payload.defaults) ? payload.defaults : [])
+              setApplied(payload.applied !== null && typeof payload.applied === 'object' ? payload.applied : null)
               setFills({})
               setRefineText('')
+              setEditingDefault('')
+              setSentBackHint(false)
               setPhase('done')
               setError('')
             } else {
@@ -926,6 +1127,9 @@ window.__ModuleLoader__.load({
               // still exists, so a rewritten prompt does not silently lose input.
               setPlaceholders(Array.isArray(payload.placeholders) ? payload.placeholders : [])
               setMissingParts(Array.isArray(payload.missing) ? payload.missing : [])
+              setDefaults(Array.isArray(payload.defaults) ? payload.defaults : [])
+              if (payload.applied !== null && typeof payload.applied === 'object') setApplied(payload.applied)
+              setEditingDefault('')
               setFills((current) => {
                 const next = {}
                 for (const item of Array.isArray(payload.placeholders) ? payload.placeholders : []) {
@@ -981,6 +1185,72 @@ window.__ModuleLoader__.load({
           })
       }
 
+      /**
+       * Apply an edited default value.
+       *
+       * Local substitution, not a refine call: the user is choosing a different
+       * value for a decision already made, which needs no model round trip. The
+       * result stays in step with the text because both are derived from `result`.
+       *
+       * @param {string} item - Default item text to replace.
+       * @param {string} value - New value.
+       */
+      const applyDefault = (item, value) => {
+        const trimmed = String(value ?? '').trim()
+        if (trimmed === '' || trimmed === item) {
+          setEditingDefault('')
+          setEditingValue('')
+          return
+        }
+        const next = replaceDefaultItemLocal(result, item, trimmed)
+        if (next !== result) {
+          setResult(next)
+          // Keep the item list in step without re-parsing the whole prompt: only
+          // this one value changed, so only this one entry needs updating.
+          setDefaults((current) =>
+            current.map((group) => ({
+              ...group,
+              items: group.items.map((entry) => (entry === item ? trimmed : entry)),
+            })),
+          )
+        }
+        setEditingDefault('')
+        setEditingValue('')
+      }
+
+      /**
+       * Save the current combination of choices.
+       *
+       * The name is derived from the choices themselves rather than asked for: a
+       * naming dialog is a decision the user did not ask to make, and the label is
+       * only there to recognise the combo later.
+       */
+      const savePreset = () => {
+        if (scene === 'general' && audience === 'auto' && standards.length === 0) return
+        const label = [
+          (SCENES.find((item) => item.key === scene) ?? {})[zh ? 'zh' : 'en'],
+          (AUDIENCES.find((item) => item.key === audience) ?? {})[zh ? 'zh' : 'en'],
+          ...standards.map((key) => (STANDARDS.find((item) => item.key === key) ?? {})[zh ? 'zh' : 'en']),
+        ]
+          .filter((part) => typeof part === 'string')
+          .join('+')
+
+        const next = [
+          ...presets.filter((preset) => preset.name !== label),
+          { name: label, scene, audience, standards: [...standards] },
+        ].slice(-6)
+        setPresets(next)
+        storePresets(next)
+        flash(tr(t, 'presetSaved', EN.presetSaved), 'done')
+      }
+
+      /** Apply a saved preset to the current choices. */
+      const usePreset = (preset) => () => {
+        setScene(preset.scene)
+        setAudience(preset.audience)
+        setStandards(Array.isArray(preset.standards) ? preset.standards : [])
+      }
+
       /** Store the current prompt in the user's own library. */
       const saveToLibrary = () => {
         const text = filledResult.trim()
@@ -1026,6 +1296,9 @@ window.__ModuleLoader__.load({
       const sendBack = () => {
         if (filledResult === '' || typeof inputActions?.setDraft !== 'function') return
         inputActions.setDraft(filledResult)
+        // Say where it went. The panel and the composer are different views, so
+        // "done" alone left the user looking at an unchanged screen.
+        setSentBackHint(true)
         flash(tr(t, 'sentBack', EN.sentBack), 'done')
       }
 
@@ -1050,7 +1323,6 @@ window.__ModuleLoader__.load({
           ),
         )
 
-      const zh = /^zh/.test(typeof navigator !== 'undefined' ? navigator.language || '' : '')
 
       return h(
         'div',
@@ -1075,6 +1347,27 @@ window.__ModuleLoader__.load({
               if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) generate()
             },
           }),
+          // Shown only when the box is empty: an experienced user would find them
+          // noise, and they vanish the moment typing starts.
+          idea.trim() === ''
+            ? h(
+                'div',
+                { className: 'dsh-wt-actions' },
+                h('span', { className: 'dsh-wt-status' }, tr(t, 'exampleHint', EN.exampleHint)),
+                ...EXAMPLE_IDEAS.map((example) =>
+                  h(
+                    'button',
+                    {
+                      key: example.key,
+                      type: 'button',
+                      className: 'dsh-wt-ghost',
+                      onClick: () => setIdea(zh ? example.zh : example.en),
+                    },
+                    zh ? example.zh : example.en,
+                  ),
+                ),
+              )
+            : null,
         ),
         h(
           'div',
@@ -1094,6 +1387,15 @@ window.__ModuleLoader__.load({
               : tr(t, 'generate', EN.generate),
           ),
         ),
+        // Naming the reference makes the effect of "use as reference" visible, so
+        // the button is not a blind toggle.
+        basedOnRecord === undefined
+          ? null
+          : h(
+              'span',
+              { className: 'dsh-wt-status' },
+              `${tr(t, 'referencing', EN.referencing)}${basedOnRecord.title ?? basedOnRecord.id}`,
+            ),
         h(
           'div',
           { className: 'dsh-wt-section' },
@@ -1121,6 +1423,29 @@ window.__ModuleLoader__.load({
             ),
           ),
           h('span', { className: 'dsh-wt-status' }, tr(t, 'standardsHint', EN.standardsHint)),
+          // A saved combination, so a recurring job does not mean re-picking three
+          // controls every time.
+          h(
+            'div',
+            { className: 'dsh-wt-actions' },
+            presets.map((preset) =>
+              h(
+                'button',
+                {
+                  key: preset.name,
+                  type: 'button',
+                  className: 'dsh-wt-ghost',
+                  onClick: usePreset(preset),
+                },
+                preset.name,
+              ),
+            ),
+            h(
+              'button',
+              { type: 'button', className: 'dsh-wt-ghost', onClick: savePreset },
+              tr(t, 'presetSave', EN.presetSave),
+            ),
+          ),
         ),
         phase !== 'busy'
           ? null
@@ -1157,14 +1482,38 @@ window.__ModuleLoader__.load({
               { className: 'dsh-wt-section' },
               h('span', { className: 'dsh-wt-label' }, tr(t, 'panelTitle', EN.panelTitle)),
               h('div', { className: 'dsh-wt-result' }, filledResult),
+              // Which choices shaped this text. Without it the two selects above
+              // look decorative.
+              appliedLabels.length === 0
+                ? null
+                : h(
+                    'span',
+                    { className: 'dsh-wt-status' },
+                    `${tr(t, 'appliedLabel', EN.appliedLabel)}${appliedLabels.join(' / ')}`,
+                  ),
               // Self-check against the four elements every prompt must name. The
               // Host computes which are missing, so this is a report, not a guess.
               missingParts.length === 0
                 ? h('span', { className: 'dsh-wt-status', 'data-tone': 'done' }, tr(t, 'checkOk', EN.checkOk))
                 : h(
-                    'span',
-                    { className: 'dsh-wt-status' },
-                    `${tr(t, 'checkMissing', EN.checkMissing)}${missingParts.join(' / ')}`,
+                    'div',
+                    { className: 'dsh-wt-actions' },
+                    h('span', { className: 'dsh-wt-status' }, tr(t, 'checkMissing', EN.checkMissing)),
+                    // One button per gap. Each runs the existing refine path, so
+                    // the fix costs a click rather than a rewrite of the wish.
+                    ...missingParts.map((part) =>
+                      h(
+                        'button',
+                        {
+                          key: part,
+                          type: 'button',
+                          className: 'dsh-wt-ghost',
+                          disabled: phase === 'busy',
+                          onClick: () => refine(fixInstructionOf(part, zh)),
+                        },
+                        `${tr(t, 'checkFixPrefix', EN.checkFixPrefix)}${part}`,
+                      ),
+                    ),
                   ),
               h(
                 'div',
@@ -1181,6 +1530,20 @@ window.__ModuleLoader__.load({
                   tr(t, 'saveToLibrary', EN.saveToLibrary),
                 ),
               ),
+              // The composer is on another view, so confirm the write and offer to
+              // go there. Without this the user pressed a button and saw nothing.
+              sentBackHint !== true
+                ? null
+                : h(
+                    'div',
+                    { className: 'dsh-wt-actions' },
+                    h('span', { className: 'dsh-wt-status', 'data-tone': 'done' }, tr(t, 'sentBackWhere', EN.sentBackWhere)),
+                    h(
+                      'button',
+                      { type: 'button', className: 'dsh-wt-ghost', onClick: goToConversation },
+                      tr(t, 'sentBackGo', EN.sentBackGo),
+                    ),
+                  ),
               // Blanks. Rendered only when the prompt actually has them, and each
               // one writes straight into the text above.
               placeholders.length === 0
@@ -1201,6 +1564,53 @@ window.__ModuleLoader__.load({
                           onChange: (event) =>
                             setFills((current) => ({ ...current, [item.label]: event.target.value })),
                         }),
+                      ),
+                    ),
+                  ),
+              // The assumptions the prompt itself marked as changeable. Editing one
+              // is a local substitution: no model call, changes the text at once.
+              defaults.length === 0
+                ? null
+                : h(
+                    'div',
+                    { className: 'dsh-wt-fills' },
+                    h('span', { className: 'dsh-wt-label' }, tr(t, 'defaultsTitle', EN.defaultsTitle)),
+                    h(
+                      'div',
+                      { className: 'dsh-wt-actions' },
+                      ...defaults.flatMap((group) =>
+                        group.items.map((item) =>
+                          editingDefault === item
+                            ? h('input', {
+                                key: item,
+                                className: 'dsh-wt-search',
+                                value: editingValue,
+                                autoFocus: true,
+                                placeholder: item,
+                                onChange: (event) => setEditingValue(event.target.value),
+                                onKeyDown: (event) => {
+                                  if (event.key === 'Enter') applyDefault(item, editingValue)
+                                  if (event.key === 'Escape') {
+                                    setEditingDefault('')
+                                    setEditingValue('')
+                                  }
+                                },
+                                onBlur: () => applyDefault(item, editingValue),
+                              })
+                            : h(
+                                'button',
+                                {
+                                  key: item,
+                                  type: 'button',
+                                  className: 'dsh-wt-ghost',
+                                  onClick: () => {
+                                    setEditingDefault(item)
+                                    setEditingValue(item)
+                                  },
+                                },
+                                item,
+                              ),
+                        ),
                       ),
                     ),
                   ),
@@ -1291,6 +1701,9 @@ window.__ModuleLoader__.load({
               libLoading ? tr(t, 'libraryRefreshing', EN.libraryRefreshing) : tr(t, 'libraryRefresh', EN.libraryRefresh),
             ),
           ),
+          // Without this line the library reads as a list of unrelated text: the
+          // user reported not knowing what it was for.
+          h('span', { className: 'dsh-wt-status' }, tr(t, 'libraryHowTo', EN.libraryHowTo)),
           h(
             'div',
             { className: 'dsh-wt-cats' },
@@ -1758,6 +2171,28 @@ window.__ModuleLoader__.load({
     return {
       inject: ['slots', 'locale'],
       apply(ctx) {
+        /**
+         * Capture the layout service the moment it exists.
+         *
+         * Probing once with `ctx.get` raced the boot order: if `layout` was not
+         * ready during apply it stayed null forever and the switch button did
+         * nothing, silently. `ctx.inject` is reactive, so the callback runs
+         * whenever the service appears — and because the declaration lives inside
+         * this call rather than in `inject`, activation still does not depend on
+         * it. This mirrors the pattern already used for Host routes.
+         */
+        const captureLayout = (scope) => {
+          try {
+            layoutService = scope?.layout ?? scope?.get?.('layout') ?? null
+          } catch {
+            layoutService = null
+          }
+        }
+        if (typeof ctx.inject === 'function') {
+          ctx.inject(['layout'], captureLayout)
+        } else {
+          captureLayout(ctx)
+        }
         ctx.effect(
           () => ctx.locale.register('dsh-wish-tree', { en: EN, 'zh-CN': ZH, zh: ZH }),
           'dsh-wish-tree: composer and panel copy',

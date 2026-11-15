@@ -41,7 +41,8 @@ import { findRecord, normalizeLibrary } from './lib/wishlist.js'
 import { REMOTE_SOURCES, fetchAllSources, refreshDecision, mergeLibraries } from './lib/sources.js'
 import { buildStandardsBlock } from './lib/standards.js'
 import { reclassifyRecords } from './lib/classify.js'
-import { checkPromptElements, extractPlaceholders } from './lib/placeholders.js'
+import { checkPromptElements, extractDefaults, extractPlaceholders } from './lib/placeholders.js'
+import { resolveStandardKeys } from './lib/standards.js'
 import {
   appendPersonal,
   buildPersonalRecord,
@@ -306,26 +307,56 @@ async function respond(ctx, settings, bodyLimit, recentCalls, request) {
  * @param {object} res - Node response.
  * @returns {Promise<void>} Resolves once the response is written.
  */
+/**
+ * Admit one Node route request, refusing when admission cannot be checked.
+ *
+ * Fails CLOSED on purpose. The earlier code wrapped the check in
+ * `if (connection !== undefined)`, so an absent service skipped authorisation and
+ * let the request through — the opposite of a safe default. "Cannot verify the
+ * caller" must not read as "verified".
+ *
+ * @param ctx - Host context carrying `connection`.
+ * @param {object} req - Node request.
+ * @param {object} res - Node response, written on refusal.
+ * @returns {boolean} True when the caller may proceed.
+ */
+export function admitNodeRequest(ctx, req, res) {
+  let connection
+  try {
+    connection = ctx.get('connection')
+  } catch {
+    connection = undefined
+  }
+
+  if (connection === undefined) {
+    sendJson(res, 401, {
+      error: { code: 'UNAUTHORIZED', message: 'This route requires a browser session.' },
+    })
+    return false
+  }
+
+  let admission
+  try {
+    admission = connection.admit({ headers: req.headers })
+  } catch {
+    // A throw here is a refusal too: we could not establish the caller's right.
+    admission = { rejection: 401 }
+  }
+  if (admission !== null && typeof admission === 'object' && admission.rejection !== undefined) {
+    sendJson(res, admission.rejection, {
+      error: { code: 'UNAUTHORIZED', message: 'This route requires a browser session.' },
+    })
+    return false
+  }
+  return true
+}
+
 async function handleLibraryNode(ctx, req, res) {
   // Everything is inside the try, including the admission read: a throw before
   // this point produced an unhandled rejection with no response at all, and the
   // Client could only report a generic failure.
   try {
-    const connection = ctx.get('connection')
-    if (connection !== undefined) {
-      let admission
-      try {
-        admission = connection.admit({ headers: req.headers })
-      } catch {
-        admission = { rejection: 401 }
-      }
-      if (admission.rejection !== undefined) {
-        sendJson(res, admission.rejection, {
-          error: { code: 'UNAUTHORIZED', message: 'This route requires a browser session.' },
-        })
-        return
-      }
-    }
+    if (admitNodeRequest(ctx, req, res) !== true) return
 
     if (req.method !== 'POST') {
       res.setHeader('allow', 'POST')
@@ -356,21 +387,7 @@ async function handleNode(ctx, settings, bodyLimit, recentCalls, req, res) {
     if (!res.writableEnded) controller.abort()
   })
 
-  const connection = ctx.get('connection')
-  if (connection !== undefined) {
-    let admission
-    try {
-      admission = connection.admit({ headers: req.headers })
-    } catch {
-      admission = { rejection: 401 }
-    }
-    if (admission.rejection !== undefined) {
-      sendJson(res, admission.rejection, {
-        error: { code: 'UNAUTHORIZED', message: 'This route requires a browser session.' },
-      })
-      return
-    }
-  }
+  if (admitNodeRequest(ctx, req, res) !== true) return
 
   let outcome
   try {
@@ -473,8 +490,18 @@ async function enhance(ctx, settings, recentCalls, body, signal) {
       // computing them there would mean a second copy of the same rules — the
       // exact duplication the audit flagged for the library filter.
       placeholders: extractPlaceholders(text),
+      // The assumptions this prompt marked as changeable, split into individual
+      // items so the panel can offer a control per choice.
+      defaults: extractDefaults(text),
       missing: checkPromptElements(text).missing,
       refine: refineOf !== '',
+      // Which choices produced this prompt. Without it the user sees two selects
+      // and has no way to tell what they actually did.
+      applied: {
+        scene: resolveScene(body?.scene),
+        audience: resolveAudience(body?.audience),
+        standards: resolveStandardKeys(body?.standards),
+      },
     },
   }
 }

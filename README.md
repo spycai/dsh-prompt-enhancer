@@ -117,7 +117,7 @@
 ## 开发
 
 ```bash
-npm test              # 自动发现并运行 test/*.test.mjs（当前 310 条）
+npm test              # 自动发现并运行 test/*.test.mjs（当前 338 条）
 npm run baseline:check # 提示词质量门禁：回退即失败
 ```
 

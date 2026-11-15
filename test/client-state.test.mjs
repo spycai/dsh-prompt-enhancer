@@ -274,3 +274,53 @@ test('the panel scene and audience keys match lib/prompt.js', async () => {
     assert.equal(prompt.resolveScene(key), key, `scene ${key} is unknown to the Host`)
   }
 })
+// --- v1.9.0: make the result actionable and the panel self-explanatory -------
+
+test('every missing element carries a one-click fix', () => {
+  // The self-check used to report「还缺：受众」and stop. That is a dead end at the
+  // exact moment the user needs help, so each gap now runs the existing refine path.
+  const panel = CLIENT.slice(CLIENT.indexOf('function WishTreePanel'))
+  const body = panel.slice(0, panel.indexOf('function WishTreeSidebarIcon'))
+  assert.match(body, /missingParts\.map\(\(part\) =>/, 'one control per missing element')
+  assert.match(body, /refine\(fixInstructionOf\(part, zh\)\)/, 'the fix reuses refine')
+  assert.match(CLIENT, /function fixInstructionOf\(part, zh\)/)
+})
+
+test('the fix instruction is built from the Host label, not a second table', () => {
+  // The Host reports 目标 / 交付格式 / 受众 / 主要约束. Building the instruction from
+  // that label avoids a parallel list that could drift out of step with it.
+  assert.match(CLIENT, /补上「\$\{part\}」/)
+})
+
+test('example ideas are clickable and disappear once typing starts', () => {
+  assert.match(CLIENT, /const EXAMPLE_IDEAS = \[/)
+  assert.match(CLIENT, /idea\.trim\(\) === ''/, 'hidden when the box has content')
+  const ideas = CLIENT.slice(CLIENT.indexOf('EXAMPLE_IDEAS = ['))
+  assert.ok((ideas.match(/key: '/g) ?? []).length >= 3, 'at least three starting points')
+})
+
+test('the library explains what the reference button does', () => {
+  assert.match(CLIENT, /libraryHowTo:/)
+  // And names the chosen record, so the toggle is not blind.
+  assert.match(CLIENT, /basedOnRecord/)
+  assert.match(CLIENT, /tr\(t, 'referencing', EN\.referencing\)/)
+})
+
+test('every new string exists in both languages', () => {
+  for (const key of ['checkFixPrefix', 'exampleHint', 'libraryHowTo', 'referencing']) {
+    const count = (CLIENT.match(new RegExp(`${key}:`, 'g')) ?? []).length
+    assert.ok(count >= 2, `${key} must be defined in EN and ZH`)
+  }
+})
+test('writing into the composer confirms where the text went', () => {
+  // Reported: pressing 「回填到输入框」 left the screen unchanged, because the panel
+  // and the composer are separate views. The confirmation now says so and offers
+  // a jump back to the chat.
+  assert.match(CLIENT, /sentBackWhere/)
+  assert.match(CLIENT, /goToConversation/, 'a jump back must exist')
+  assert.match(CLIENT, /layoutService\?\.selectPanel\?\.\('conversation'\)/, 'it uses the layout service')
+  // And it must be captured reactively, not probed once: a single `ctx.get`
+  // during apply leaves the handle null forever when the service arrives late.
+  assert.match(CLIENT, /ctx\.inject\(\['layout'\]/, 'layout must be injected reactively')
+  assert.doesNotMatch(CLIENT, /layoutService = ctx\.get\('layout'\)/, 'no one-shot probe')
+})

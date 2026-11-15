@@ -12,7 +12,9 @@ import { test } from 'node:test'
 import {
   checkPromptElements,
   countPlaceholders,
+  extractDefaults,
   extractPlaceholders,
+  replaceDefaultItem,
   fillPlaceholders,
   stripDefaultMarkers,
 } from '../lib/placeholders.js'
@@ -150,4 +152,54 @@ test('the self-check no longer reports countable sizes as missing', () => {
 test('the self-check still reports a genuinely empty request', () => {
   const empty = checkPromptElements('随便什么')
   assert.deepEqual(empty.missing, ['目标', '交付格式', '受众', '主要约束'])
+})
+// --- v1.9.1: editable defaults ----------------------------------------------
+
+test('defaults are extracted and split into individual choices', () => {
+  // Rule 4 writes `[默认：…，可改]`, which promises the user can change them. The
+  // panel had no way to keep that promise until the items were parsed out.
+  const found = extractDefaults('做一份PPT。[默认：简体中文、16:9 版式、10~12 页、可改] 主题是X。')
+  assert.equal(found.length, 1)
+  assert.deepEqual(found[0].items, ['简体中文', '16:9 版式', '10~12 页'])
+  // The trailing 「可改」 is a flag, not a value.
+  assert.equal(found[0].items.includes('可改'), false)
+})
+
+test('defaults without the changeable suffix still parse', () => {
+  const found = extractDefaults('[默认：中文]')
+  assert.deepEqual(found[0].items, ['中文'])
+})
+
+test('several default markers are returned separately', () => {
+  const found = extractDefaults('[默认：中文，可改] 正文 [默认：A4 纸，可改]')
+  assert.equal(found.length, 2)
+  assert.deepEqual(found[0].items, ['中文'])
+  assert.deepEqual(found[1].items, ['A4 纸'])
+})
+
+test('a prompt with no defaults yields none', () => {
+  for (const text of ['没有默认标注', '', undefined, null, 42]) {
+    assert.deepEqual(extractDefaults(text), [])
+  }
+})
+
+test('replacing one item leaves the rest of the marker intact', () => {
+  const text = '[默认：简体中文、16:9 版式、10~12 页、可改]'
+  const next = replaceDefaultItem(text, '10~12 页', '6 页')
+  assert.equal(next, '[默认：简体中文、16:9 版式、6 页，可改]')
+  assert.equal(next.includes('简体中文'), true)
+  assert.equal(next.includes('16:9'), true)
+  assert.equal(next.includes('可改'), true, 'it must still read as changeable')
+})
+
+test('replacing an unknown item changes nothing', () => {
+  const text = '[默认：中文、16:9，可改]'
+  assert.equal(replaceDefaultItem(text, '不存在', 'X'), text)
+})
+
+test('replaceDefaultItem tolerates unusable arguments', () => {
+  assert.equal(replaceDefaultItem('', 'a', 'b'), '')
+  assert.equal(replaceDefaultItem('原文', '', 'b'), '原文')
+  assert.equal(replaceDefaultItem('原文', 'a', ''), '原文')
+  assert.equal(replaceDefaultItem('原文', 'a', '   '), '原文')
 })
