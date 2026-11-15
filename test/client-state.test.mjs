@@ -63,11 +63,17 @@ test('a long timeout is safe because the button stays cancellable', () => {
 })
 
 test('conversation history is read lazily at click time, not during render', () => {
-  // F1. `chat.legacy.nodes` is a flat array rebuilt on every publication;
-  // reading it during render would re-render the button on every token.
+  // F1, extended in v1.8: the read is now a shared helper so the composer button
+  // and the panel cannot drift apart. `chat.legacy.nodes` is a flat array
+  // rebuilt on every publication; reading it during render would re-render on
+  // every token.
+  assert.match(CLIENT, /function readTranscript\(chat\)/)
+  assert.match(CLIENT, /chat\?\.legacy\?\.nodes/)
   assert.match(CLIENT, /const chatRef = React\.useRef\(chat\)/)
-  assert.match(CLIENT, /const readConversation = \(\) =>/)
-  assert.match(CLIENT, /chatRef\.current\?\.legacy\?\.nodes/)
+  assert.match(CLIENT, /chatRef\.current = chat/)
+  // Both callers go through the ref, never the render-time value.
+  assert.match(CLIENT, /readTranscript\(chatRef\.current\)/)
+  assert.match(CLIENT, /readTranscript\(chatRef\.current\)/)
 })
 
 test('context is sent only for the rewrite mode', () => {
@@ -82,4 +88,82 @@ test('a missing or broken chat API degrades to no context', () => {
   // falls back to the previous context-free behaviour instead of failing.
   assert.match(CLIENT, /useChat/, 'the hook is requested')
   assert.match(CLIENT, /} catch \{\s*return ''\s*\}/s, 'a failure returns empty context')
+})
+
+// --- v1.8: panel, rename, library -----------------------------------------
+
+test('the plugin presents itself as 许愿树 with a one-time rename note', () => {
+  assert.match(CLIENT, /id: 'dsh-wish-tree'/)
+  assert.match(CLIENT, /label: '许愿树'/)
+  assert.match(CLIENT, /panelTitle: '许愿树'/)
+  assert.match(CLIENT, /原名「增强提示词」/, 'the rename must be explained once')
+  assert.match(CLIENT, /locale\.register\('dsh-wish-tree'/)
+})
+
+test('the panel is registered as a real slot view, not an overlay', () => {
+  // The brief asks for an independent panel. `main` is the central-panel slot
+  // selected by a sidebar entry id, so that is where it goes.
+  assert.match(CLIENT, /ctx\.slots\.register\(\{ name: 'main', key: PANEL_KEY/)
+  assert.match(CLIENT, /ctx\.slots\.register\(\s*\{ name: 'sidebar\.panellist'/)
+  assert.match(CLIENT, /const PANEL_KEY = 'wish-tree'/)
+})
+
+test('the composer button remains as a second entry point', () => {
+  // The sidebar icon is the primary entry, but a host change must not be able
+  // to strand the feature with no way in.
+  assert.match(CLIENT, /name: 'conversation\.input\.right', id: 'wish-tree'/)
+})
+
+test('the panel never reads conversation history during render', () => {
+  // `chat.legacy.nodes` is rebuilt on every publication; touching it in the
+  // render body would re-render the panel on every token.
+  const panel = CLIENT.slice(CLIENT.indexOf('function WishTreePanel'))
+  const body = panel.slice(0, panel.indexOf('function WishTreeSidebarIcon'))
+  assert.match(body, /chatRef\.current = chat/)
+  assert.match(body, /readTranscript\(chatRef\.current\)/)
+  assert.doesNotMatch(body, /chat\?\.legacy/, 'no direct read in the render body')
+})
+
+test('the panel offers idea, scene, audience, generate, result and library', () => {
+  const panel = CLIENT.slice(CLIENT.indexOf('function WishTreePanel'))
+  const body = panel.slice(0, panel.indexOf('function WishTreeSidebarIcon'))
+  for (const marker of [
+    /wishLabel/,
+    /sceneLabel/,
+    /audienceLabel/,
+    /generate/,
+    /copyResult/,
+    /sendBack/,
+    /libraryTitle/,
+    /libraryRefresh/,
+  ]) {
+    assert.match(body, marker, `panel is missing ${marker}`)
+  }
+})
+
+test('the library is loaded from the seed route, never fetched inline', () => {
+  const panel = CLIENT.slice(CLIENT.indexOf('function WishTreePanel'))
+  const body = panel.slice(0, panel.indexOf('function WishTreeSidebarIcon'))
+  assert.match(body, /LIBRARY_ENDPOINT/, 'the panel talks to the Host route')
+  assert.doesNotMatch(body, /raw\.githubusercontent/, 'the browser must not fetch the source directly')
+})
+
+test('a failed refresh keeps the list and only shows a notice', () => {
+  const panel = CLIENT.slice(CLIENT.indexOf('function WishTreePanel'))
+  const body = panel.slice(0, panel.indexOf('function WishTreeSidebarIcon'))
+  assert.match(body, /setLibNotice\(/, 'a failure surfaces as a notice')
+  assert.match(body, /正在使用内置库/, 'the notice explains the fallback')
+})
+
+test('the panel survives a slot that does not expose useChat', () => {
+  // The `main` slot's standard props are session/workspace selectors only; it
+  // does NOT pass useChat. The panel must degrade to a context-free rewrite
+  // rather than throw, because generation and the library are its main job.
+  const panel = CLIENT.slice(CLIENT.indexOf('function WishTreePanel'))
+  const body = panel.slice(0, panel.indexOf('function WishTreeSidebarIcon'))
+  assert.match(body, /typeof useChat === 'function' \? useChat\(/, 'the hook is optional, not assumed')
+  assert.match(body, /readTranscript\(chatRef\.current\)/, 'the read goes through the shared helper')
+  // The helper itself is defined once, outside the panel, so an absent hook
+  // simply yields an empty transcript.
+  assert.match(CLIENT, /function readTranscript\(chat\)/)
 })

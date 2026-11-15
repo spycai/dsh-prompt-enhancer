@@ -1,8 +1,9 @@
+# 许愿树（原名「增强提示词」）。
 # Every field is optional; lib/prompt.js supplies the same defaults, and the
 # exported Config schema mirrors them so a wrong value fails loudly.
 - insert:
-    - id: prompt-enhancer
-      name: dsh-prompt-enhancer
+    - id: wish-tree
+      name: dsh-wish-tree
       config:
         # rewrite = 重写成完整提示词；polish = 只润色措辞（菜单里选什么就执行什么）
         mode: rewrite

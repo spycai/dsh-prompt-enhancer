@@ -1,5 +1,5 @@
 window.__ModuleLoader__.load({
-  id: 'dsh-prompt-enhancer',
+  id: 'dsh-wish-tree',
   factory(require) {
     const React = require('react')
     const h = React.createElement
@@ -11,6 +11,8 @@ window.__ModuleLoader__.load({
      * serves a page the Host itself rendered, and the Host admits it first.
      */
     const ENDPOINTS = ['/api/prompt-enhancer/enhance', '/prompt-enhance']
+    /** Library browse/refresh route on the same bridge. */
+    const LIBRARY_ENDPOINT = '/api/wish-tree/library'
     /**
      * A rewrite that never settles must not pin the button in its busy state.
      *
@@ -28,9 +30,9 @@ window.__ModuleLoader__.load({
     /** How long "restore the original" stays offered after an enhancement. */
     const UNDO_WINDOW_MS = 120000
 
-    /** Composer copy. `locale/*.json` holds only plugin-manager metadata. */
+    /** Composer and panel copy. `locale/*.json` holds only plugin-manager metadata. */
     const EN = {
-      label: 'Enhance prompt',
+      label: 'Wish Tree',
       undo: 'Restore the original text',
       busy: 'Rewriting the prompt… click to cancel',
       empty: 'Type a message in the composer first',
@@ -53,9 +55,37 @@ window.__ModuleLoader__.load({
       modePolish: 'Polish only',
       modeRewriteHint: 'I pick the technical defaults — you describe the need',
       modePolishHint: 'Keep length and structure, improve wording',
+      // Panel
+      panelTitle: 'Wish Tree',
+      panelSubtitle: 'Type one idea. Take away a prompt you can send as-is.',
+      renamed: 'Formerly "Prompt Enhancer" — same plugin, now with a panel and a prompt library.',
+      wishLabel: 'Your idea',
+      wishPlaceholder: 'e.g. make a deck for a client demo next week',
+      sceneLabel: 'Scene',
+      audienceLabel: 'Audience',
+      generate: 'Generate',
+      generating: 'Generating…',
+      copied: 'Copied',
+      copy: 'Copy',
+      sendBack: 'Use in composer',
+      sentBack: 'Written into the composer',
+      libraryTitle: 'Prompt library',
+      librarySearch: 'Search prompts',
+      librarySaved: 'Saved',
+      libraryBrowse: 'Browse',
+      libraryRefresh: 'Refresh',
+      libraryRefreshing: 'Refreshing…',
+      libraryEmpty: 'Nothing matches that search',
+      libraryUse: 'Use as reference',
+      libraryUsing: 'Referencing',
+      librarySave: 'Save',
+      libraryUnsave: 'Saved',
+      libraryLicence: 'Licence',
+      librarySource: 'Source',
+      close: 'Close',
     }
     const ZH = {
-      label: '增强提示词',
+      label: '许愿树',
       undo: '还原原文',
       busy: '正在改写提示词… 点击可取消',
       empty: '请先在对话框里输入内容',
@@ -78,6 +108,34 @@ window.__ModuleLoader__.load({
       modePolish: '仅润色',
       modeRewriteHint: '专业细节我来定，你只说需求',
       modePolishHint: '保持长度与结构，只改措辞',
+      // 面板
+      panelTitle: '许愿树',
+      panelSubtitle: '写下一句想法，带走一份可以直接用的提示词。',
+      renamed: '原名「增强提示词」—— 同一个插件，现在有独立面板和提示词宝库。',
+      wishLabel: '你的想法',
+      wishPlaceholder: '例如：下周给客户做产品演示，做个PPT',
+      sceneLabel: '场景',
+      audienceLabel: '受众',
+      generate: '生成',
+      generating: '生成中…',
+      copied: '已复制',
+      copy: '复制',
+      sendBack: '回填到输入框',
+      sentBack: '已写入输入框',
+      libraryTitle: '提示词宝库',
+      librarySearch: '搜索提示词',
+      librarySaved: '收藏',
+      libraryBrowse: '浏览',
+      libraryRefresh: '刷新',
+      libraryRefreshing: '正在刷新…',
+      libraryEmpty: '没有匹配的条目',
+      libraryUse: '作为参考',
+      libraryUsing: '参考中',
+      librarySave: '收藏',
+      libraryUnsave: '已收藏',
+      libraryLicence: '许可',
+      librarySource: '来源',
+      close: '关闭',
     }
 
     /** Stable failure code → copy key. */
@@ -115,6 +173,46 @@ window.__ModuleLoader__.load({
       '.dsh-pe-hint{color:var(--dsw-alias-label-secondary);font-size:11px;line-height:14px}',
       '@keyframes dsh-pe-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}',
       '@media (prefers-reduced-motion: reduce){.dsh-pe-btn[data-busy="true"] svg{animation:none;opacity:.6}}',
+      // ---- v1.8 panel ----
+      '.dsh-wt-panel{display:flex;flex-direction:column;height:100%;min-height:0;overflow:auto;padding:20px 24px 28px;gap:16px;box-sizing:border-box}',
+      '.dsh-wt-head{display:flex;flex-direction:column;gap:4px}',
+      '.dsh-wt-title{font-size:18px;font-weight:600;line-height:26px;color:var(--dsw-alias-label-primary);margin:0}',
+      '.dsh-wt-sub{font-size:13px;line-height:20px;color:var(--dsw-alias-label-secondary);margin:0}',
+      '.dsh-wt-rename{font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary);padding:6px 10px;border:1px solid var(--dsw-alias-border-l1);border-radius:6px;background:var(--dsw-alias-bg-layer-2);align-self:flex-start}',
+      '.dsh-wt-section{display:flex;flex-direction:column;gap:8px}',
+      '.dsh-wt-label{font-size:12px;font-weight:600;line-height:18px;color:var(--dsw-alias-label-secondary)}',
+      '.dsh-wt-textarea{width:100%;min-height:88px;resize:vertical;padding:10px 12px;border:1px solid var(--dsw-alias-border-l1);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font-size:13px;line-height:20px;font-family:inherit;box-sizing:border-box}',
+      '.dsh-wt-textarea:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}',
+      '.dsh-wt-row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}',
+      '.dsh-wt-field{display:flex;flex-direction:column;gap:6px;min-width:150px}',
+      '.dsh-wt-select{padding:6px 10px;border:1px solid var(--dsw-alias-border-l1);border-radius:6px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font-size:13px;line-height:20px;font-family:inherit}',
+      '.dsh-wt-primary{padding:8px 20px;border:0;border-radius:8px;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-inverse, #fff);font-size:13px;font-weight:600;line-height:20px;cursor:pointer;font-family:inherit}',
+      '.dsh-wt-primary:hover:not(:disabled){opacity:.9}',
+      '.dsh-wt-primary:disabled{cursor:default;opacity:.5}',
+      '.dsh-wt-primary:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}',
+      '.dsh-wt-ghost{padding:5px 12px;border:1px solid var(--dsw-alias-border-l1);border-radius:6px;background:transparent;color:var(--dsw-alias-label-primary);font-size:12px;line-height:18px;cursor:pointer;font-family:inherit}',
+      '.dsh-wt-ghost:hover:not(:disabled){background:var(--dsw-alias-bg-layer-2)}',
+      '.dsh-wt-ghost:disabled{cursor:default;opacity:.5}',
+      '.dsh-wt-ghost[data-on="true"]{background:var(--dsw-alias-bg-layer-2);font-weight:600}',
+      '.dsh-wt-ghost:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}',
+      '.dsh-wt-result{padding:12px 14px;border:1px solid var(--dsw-alias-border-l1);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font-size:13px;line-height:22px;white-space:pre-wrap;word-break:break-word;max-height:320px;overflow:auto}',
+      '.dsh-wt-actions{display:flex;gap:8px;flex-wrap:wrap}',
+      '.dsh-wt-status{font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary)}',
+      '.dsh-wt-status[data-tone="error"]{color:var(--dsw-alias-state-error-primary)}',
+      '.dsh-wt-status[data-tone="done"]{color:var(--dsw-alias-state-success-primary)}',
+      '.dsh-wt-libhead{display:flex;gap:8px;flex-wrap:wrap;align-items:center}',
+      '.dsh-wt-search{flex:1;min-width:160px;padding:6px 10px;border:1px solid var(--dsw-alias-border-l1);border-radius:6px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font-size:13px;line-height:20px;font-family:inherit}',
+      '.dsh-wt-cats{display:flex;gap:6px;flex-wrap:wrap}',
+      '.dsh-wt-list{display:flex;flex-direction:column;gap:8px;max-height:360px;overflow:auto}',
+      '.dsh-wt-item{padding:10px 12px;border:1px solid var(--dsw-alias-border-l1);border-radius:8px;background:var(--dsw-alias-bg-layer-1);display:flex;flex-direction:column;gap:6px}',
+      '.dsh-wt-item[data-selected="true"]{border-color:var(--dsw-alias-brand-primary)}',
+      '.dsh-wt-itemtitle{font-size:13px;font-weight:600;line-height:20px;color:var(--dsw-alias-label-primary)}',
+      '.dsh-wt-itemmeta{font-size:11px;line-height:16px;color:var(--dsw-alias-label-secondary);display:flex;gap:10px;flex-wrap:wrap}',
+      '.dsh-wt-itembody{font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}',
+      '.dsh-wt-itemacts{display:flex;gap:6px;flex-wrap:wrap}',
+      '.dsh-wt-sidebtn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;line-height:0}',
+      '.dsh-wt-sidebtn:hover{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}',
+      '.dsh-wt-sidebtn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}',
     ].join('')
 
     /** Endpoint that answered once, so later clicks skip the probe order. */
@@ -196,6 +294,36 @@ window.__ModuleLoader__.load({
       return message
     }
 
+    /** The one id shared by the sidebar icon and the `main` panel key. */
+    const PANEL_KEY = 'wish-tree'
+    /** Scene presets; keys only, the Host owns the wording. */
+    const SCENES = [
+      { key: 'general', zh: '通用', en: 'General' },
+      { key: 'writing', zh: '写作', en: 'Writing' },
+      { key: 'code', zh: '编程', en: 'Coding' },
+      { key: 'analysis', zh: '分析', en: 'Analysis' },
+      { key: 'design', zh: '设计', en: 'Design' },
+      { key: 'learning', zh: '学习', en: 'Learning' },
+    ]
+    /** Audience presets; `auto` leaves the decision to the model. */
+    const AUDIENCES = [
+      { key: 'auto', zh: '自动判断', en: 'Auto' },
+      { key: 'colleague', zh: '同事', en: 'Colleagues' },
+      { key: 'client', zh: '客户', en: 'Clients' },
+      { key: 'leader', zh: '领导', en: 'Management' },
+      { key: 'public', zh: '大众', en: 'Public' },
+    ]
+    /** Library category chips. `all` is a view, not a stored category. */
+    const CATEGORIES = [
+      { key: 'all', zh: '全部', en: 'All' },
+      { key: 'general', zh: '通用', en: 'General' },
+      { key: 'writing', zh: '写作', en: 'Writing' },
+      { key: 'code', zh: '编程', en: 'Coding' },
+      { key: 'analysis', zh: '分析', en: 'Analysis' },
+      { key: 'design', zh: '设计', en: 'Design' },
+      { key: 'learning', zh: '学习', en: 'Learning' },
+    ]
+
     /** Wand glyph. Inherits the control color so it matches the composer row. */
     function WandIcon() {
       return h(
@@ -214,8 +342,7 @@ window.__ModuleLoader__.load({
       )
     }
 
-    /** Arrow that bends back, for the restore control. */
-    function UndoIcon() {
+    /** Arrow that bends back, for the restore control. */    function UndoIcon() {
       return h(
         'svg',
         { viewBox: '0 0 16 16', width: 14, height: 14, fill: 'none', 'aria-hidden': true, focusable: 'false' },
@@ -236,10 +363,428 @@ window.__ModuleLoader__.load({
     }
 
     /**
+     * Read the recent transcript from the live chat store.
+     *
+     * Shared by the composer button and the panel. Returns '' in a fresh session
+     * or when the store shape is unexpected, so a missing API degrades to the
+     * previous context-free behaviour instead of failing the rewrite.
+     *
+     * @param chat - Live ChatSnapshot, or undefined.
+     * @returns Transcript text, or ''.
+     */
+    function readTranscript(chat) {
+      try {
+        const nodes = chat?.legacy?.nodes
+        if (!Array.isArray(nodes) || nodes.length === 0) return ''
+        const lines = []
+        for (const node of nodes) {
+          if (node === null || typeof node !== 'object') continue
+          const kind = node.kind
+          if (kind !== 'user' && kind !== 'assistant') continue
+          const blocks = kind === 'user' ? node.content : node.blocks
+          if (!Array.isArray(blocks)) continue
+          const parts = []
+          for (const block of blocks) {
+            if (block === null || typeof block !== 'object') continue
+            if (block.type !== 'text' && block.kind !== 'text') continue
+            if (typeof block.text !== 'string') continue
+            const piece = block.text.trim()
+            if (piece !== '') parts.push(piece)
+          }
+          const text = parts.join(' ').trim()
+          if (text === '') continue
+          lines.push(`${kind === 'user' ? '用户' : '助手'}：${text.length > 800 ? `${text.slice(0, 800)}…` : text}`)
+        }
+        const transcript = lines.slice(-8).join('\n')
+        return transcript.length > 4000 ? transcript.slice(transcript.length - 4000) : transcript
+      } catch {
+        return ''
+      }
+    }
+
+    /**
+     * The 许愿树 panel.
+     *
+     * Reads conversation history lazily, at click time, and only through a ref:
+     * `chat.legacy.nodes` is rebuilt on every publication, so subscribing during
+     * render would re-render this panel on every token of every reply.
+     *
+     * The `main` slot does not expose `useChat` (its standard props are session
+     * and workspace selectors only), so the panel degrades to a context-free
+     * rewrite when the hook is absent. That is a quality difference, not a
+     * failure: generation, the library and everything else keep working, and the
+     * composer button still supplies context because its slot does expose it.
+     */
+    function WishTreePanel(props) {
+      const { t, inputActions, useChat } = props
+      const chat = typeof useChat === 'function' ? useChat((state) => state) : undefined
+      const chatRef = React.useRef(chat)
+      chatRef.current = chat
+
+      const [idea, setIdea] = React.useState('')
+      const [scene, setScene] = React.useState('general')
+      const [audience, setAudience] = React.useState('auto')
+      const [phase, setPhase] = React.useState('idle')
+      const [result, setResult] = React.useState('')
+      const [error, setError] = React.useState('')
+      const [basedOn, setBasedOn] = React.useState('')
+      const [note, setNote] = React.useState(null)
+
+      const [records, setRecords] = React.useState([])
+      const [saved, setSaved] = React.useState([])
+      const [libOpen, setLibOpen] = React.useState(true)
+      const [libView, setLibView] = React.useState('browse')
+      const [query, setQuery] = React.useState('')
+      const [category, setCategory] = React.useState('all')
+      const [libLoading, setLibLoading] = React.useState(false)
+      const [libNotice, setLibNotice] = React.useState('')
+      const [libSource, setLibSource] = React.useState('seed')
+
+      const abortRef = React.useRef(null)
+      const mountedRef = React.useRef(true)
+
+      React.useEffect(
+        () => () => {
+          mountedRef.current = false
+          abortRef.current?.abort()
+        },
+        [],
+      )
+
+      // Load the library once on mount. `list` never touches the network, so the
+      // panel is interactive immediately; a refresh is always user-initiated.
+      React.useEffect(() => {
+        let cancelled = false
+        fetch(LIBRARY_ENDPOINT, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ action: 'list' }),
+        })
+          .then((response) => (response.ok ? response.json() : undefined))
+          .then((payload) => {
+            if (cancelled || !mountedRef.current) return
+            if (Array.isArray(payload?.records)) {
+              setRecords(payload.records)
+              setLibSource(typeof payload.source === 'string' ? payload.source : 'seed')
+            }
+          })
+          .catch(() => {
+            /* a missing seed leaves the panel usable: generation still works */
+          })
+        return () => {
+          cancelled = true
+        }
+      }, [])
+
+      const flash = (message, tone) => setNote({ message, tone })
+
+      const visible = React.useMemo(() => {
+        const needle = query.trim().toLowerCase()
+        const savedSet = new Set(saved)
+        return records.filter((record) => {
+          if (record === null || typeof record !== 'object') return false
+          if (category !== 'all' && record.category !== category) return false
+          if (libView === 'saved' && !savedSet.has(record.id)) return false
+          if (needle === '') return true
+          const haystack = `${record.title ?? ''}\n${record.body ?? ''}\n${(record.tags ?? []).join(' ')}`.toLowerCase()
+          return needle.split(/\s+/).every((word) => haystack.includes(word))
+        })
+      }, [records, query, category, libView, saved])
+
+      const refreshLibrary = () => {
+        if (libLoading) return
+        setLibLoading(true)
+        setLibNotice('')
+        fetch(LIBRARY_ENDPOINT, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ action: 'refresh' }),
+        })
+          .then((response) => response.json())
+          .then((payload) => {
+            if (!mountedRef.current) return
+            if (Array.isArray(payload?.records)) setRecords(payload.records)
+            if (payload?.ok === true) {
+              setLibSource('remote')
+              flash(tr(t, 'done', EN.done), 'done')
+            } else {
+              setLibSource('seed')
+              setLibNotice('离线或来源不可用，正在使用内置库')
+            }
+          })
+          .catch(() => {
+            if (!mountedRef.current) return
+            setLibSource('seed')
+            setLibNotice('离线或来源不可用，正在使用内置库')
+          })
+          .finally(() => {
+            if (mountedRef.current) setLibLoading(false)
+          })
+      }
+
+      const generate = () => {
+        const wish = idea.trim()
+        if (wish === '' || phase === 'busy') return
+        setPhase('busy')
+        setError('')
+
+        const controller = new AbortController()
+        abortRef.current = controller
+        const timer = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS)
+        const context = readTranscript(chatRef.current)
+        const body = { text: wish, mode: 'rewrite', scene, audience }
+        if (context !== '') body.context = context
+        if (basedOn !== '') body.basedOn = basedOn
+
+        postJson(body, controller.signal)
+          .then((payload) => {
+            if (!mountedRef.current) return
+            if (typeof payload?.text === 'string' && payload.text.trim() !== '') {
+              setResult(payload.text.trim())
+              setPhase('done')
+              setError('')
+            } else {
+              setPhase('error')
+              setError('模型没有返回内容')
+            }
+          })
+          .catch((failure) => {
+            if (!mountedRef.current) return
+            setPhase('error')
+            setError(errorText(t, failure))
+          })
+          .finally(() => {
+            clearTimeout(timer)
+            abortRef.current = null
+            if (mountedRef.current) setPhase((current) => (current === 'busy' ? 'idle' : current))
+          })
+      }
+
+      const copyResult = () => {
+        const text = result
+        if (text === '') return
+        try {
+          void navigator.clipboard?.writeText(text)
+          flash(tr(t, 'copied', EN.copied), 'done')
+        } catch {
+          flash(tr(t, 'failed', EN.failed), 'error')
+        }
+      }
+
+      const sendBack = () => {
+        if (result === '' || typeof inputActions?.setDraft !== 'function') return
+        inputActions.setDraft(result)
+        flash(tr(t, 'sentBack', EN.sentBack), 'done')
+      }
+
+      const toggleSave = (id) => () =>
+        setSaved((current) => (current.includes(id) ? current.filter((v) => v !== id) : [id, ...current]))
+
+      const field = (labelText, value, onChange, options, lang) =>
+        h(
+          'div',
+          { className: 'dsh-wt-field' },
+          h('span', { className: 'dsh-wt-label' }, labelText),
+          h(
+            'select',
+            { className: 'dsh-wt-select', value, onChange: (event) => onChange(event.target.value) },
+            options.map((option) =>
+              h('option', { key: option.key, value: option.key }, lang === 'zh' ? option.zh : option.en),
+            ),
+          ),
+        )
+
+      const zh = /^zh/.test(typeof navigator !== 'undefined' ? navigator.language || '' : '')
+
+      return h(
+        'div',
+        { className: 'dsh-wt-panel' },
+        h(
+          'div',
+          { className: 'dsh-wt-head' },
+          h('h2', { className: 'dsh-wt-title' }, tr(t, 'panelTitle', EN.panelTitle)),
+          h('p', { className: 'dsh-wt-sub' }, tr(t, 'panelSubtitle', EN.panelSubtitle)),
+          h('span', { className: 'dsh-wt-rename' }, tr(t, 'renamed', EN.renamed)),
+        ),
+        h(
+          'div',
+          { className: 'dsh-wt-section' },
+          h('span', { className: 'dsh-wt-label' }, tr(t, 'wishLabel', EN.wishLabel)),
+          h('textarea', {
+            className: 'dsh-wt-textarea',
+            value: idea,
+            placeholder: tr(t, 'wishPlaceholder', EN.wishPlaceholder),
+            onChange: (event) => setIdea(event.target.value),
+            onKeyDown: (event) => {
+              if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) generate()
+            },
+          }),
+        ),
+        h(
+          'div',
+          { className: 'dsh-wt-row' },
+          field(tr(t, 'sceneLabel', EN.sceneLabel), scene, setScene, SCENES, zh ? 'zh' : 'en'),
+          field(tr(t, 'audienceLabel', EN.audienceLabel), audience, setAudience, AUDIENCES, zh ? 'zh' : 'en'),
+          h(
+            'button',
+            {
+              type: 'button',
+              className: 'dsh-wt-primary',
+              disabled: idea.trim() === '' || phase === 'busy',
+              onClick: generate,
+            },
+            phase === 'busy' ? tr(t, 'generating', EN.generating) : tr(t, 'generate', EN.generate),
+          ),
+        ),
+        note === null
+          ? null
+          : h('span', { className: 'dsh-wt-status', 'data-tone': note.tone, role: 'status' }, note.message),
+        error === ''
+          ? null
+          : h('span', { className: 'dsh-wt-status', 'data-tone': 'error', role: 'alert' }, error),
+        result === ''
+          ? null
+          : h(
+              'div',
+              { className: 'dsh-wt-section' },
+              h('span', { className: 'dsh-wt-label' }, tr(t, 'panelTitle', EN.panelTitle)),
+              h('div', { className: 'dsh-wt-result' }, result),
+              h(
+                'div',
+                { className: 'dsh-wt-actions' },
+                h('button', { type: 'button', className: 'dsh-wt-ghost', onClick: copyResult }, tr(t, 'copy', EN.copy)),
+                h(
+                  'button',
+                  { type: 'button', className: 'dsh-wt-ghost', onClick: sendBack },
+                  tr(t, 'sendBack', EN.sendBack),
+                ),
+              ),
+            ),
+        h(
+          'div',
+          { className: 'dsh-wt-section' },
+          h(
+            'div',
+            { className: 'dsh-wt-libhead' },
+            h('span', { className: 'dsh-wt-label' }, tr(t, 'libraryTitle', EN.libraryTitle)),
+            h('input', {
+              className: 'dsh-wt-search',
+              value: query,
+              placeholder: tr(t, 'librarySearch', EN.librarySearch),
+              onChange: (event) => setQuery(event.target.value),
+            }),
+            h(
+              'button',
+              {
+                type: 'button',
+                className: 'dsh-wt-ghost',
+                'data-on': libView === 'browse' ? 'true' : 'false',
+                onClick: () => setLibView('browse'),
+              },
+              tr(t, 'libraryBrowse', EN.libraryBrowse),
+            ),
+            h(
+              'button',
+              {
+                type: 'button',
+                className: 'dsh-wt-ghost',
+                'data-on': libView === 'saved' ? 'true' : 'false',
+                onClick: () => setLibView('saved'),
+              },
+              tr(t, 'librarySaved', EN.librarySaved),
+            ),
+            h(
+              'button',
+              { type: 'button', className: 'dsh-wt-ghost', disabled: libLoading, onClick: refreshLibrary },
+              libLoading ? tr(t, 'libraryRefreshing', EN.libraryRefreshing) : tr(t, 'libraryRefresh', EN.libraryRefresh),
+            ),
+          ),
+          h(
+            'div',
+            { className: 'dsh-wt-cats' },
+            CATEGORIES.map((item) =>
+              h(
+                'button',
+                {
+                  key: item.key,
+                  type: 'button',
+                  className: 'dsh-wt-ghost',
+                  'data-on': category === item.key ? 'true' : 'false',
+                  onClick: () => setCategory(item.key),
+                },
+                zh ? item.zh : item.en,
+              ),
+            ),
+          ),
+          libNotice === ''
+            ? null
+            : h('span', { className: 'dsh-wt-status', 'data-tone': 'error' }, libNotice),
+          libSource === 'seed'
+            ? null
+            : h('span', { className: 'dsh-wt-status' }, '已从在线来源更新'),
+          visible.length === 0
+            ? h('span', { className: 'dsh-wt-status' }, tr(t, 'libraryEmpty', EN.libraryEmpty))
+            : h(
+                'div',
+                { className: 'dsh-wt-list' },
+                visible.slice(0, 60).map((record) =>
+                  h(
+                    'div',
+                    { key: record.id, className: 'dsh-wt-item', 'data-selected': basedOn === record.id ? 'true' : 'false' },
+                    h('span', { className: 'dsh-wt-itemtitle' }, record.title ?? record.id),
+                    h(
+                      'span',
+                      { className: 'dsh-wt-itemmeta' },
+                      h('span', null, `${tr(t, 'librarySource', EN.librarySource)}: ${record.source ?? ''}`),
+                      h('span', null, `${tr(t, 'libraryLicence', EN.libraryLicence)}: ${record.license ?? ''}`),
+                    ),
+                    h('span', { className: 'dsh-wt-itembody' }, record.body ?? ''),
+                    h(
+                      'div',
+                      { className: 'dsh-wt-itemacts' },
+                      h(
+                        'button',
+                        {
+                          type: 'button',
+                          className: 'dsh-wt-ghost',
+                          'data-on': basedOn === record.id ? 'true' : 'false',
+                          onClick: () => setBasedOn(basedOn === record.id ? '' : record.id),
+                        },
+                        basedOn === record.id ? tr(t, 'libraryUsing', EN.libraryUsing) : tr(t, 'libraryUse', EN.libraryUse),
+                      ),
+                      h(
+                        'button',
+                        { type: 'button', className: 'dsh-wt-ghost', onClick: toggleSave(record.id) },
+                        saved.includes(record.id) ? tr(t, 'libraryUnsave', EN.libraryUnsave) : tr(t, 'librarySave', EN.librarySave),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+        ),
+      )
+    }
+
+    /** Sidebar entry that selects the panel. */
+    function WishTreeSidebarIcon(props) {
+      const { t } = props
+      return h(
+        'button',
+        {
+          type: 'button',
+          className: 'dsh-wt-sidebtn',
+          title: tr(t, 'panelTitle', EN.panelTitle),
+          'aria-label': tr(t, 'panelTitle', EN.panelTitle),
+        },
+        h(WandIcon),
+      )
+    }
+
+    /**
      * Composer control: one click opens the mode menu, choosing a mode starts the
      * rewrite, and a second click while running cancels it.
      */
-    function PromptEnhanceButton(props) {
+    function WishTreeButton(props) {
       const { t, inputActions, useInput, useProjection, useChat } = props
 
       const draftValue =
@@ -387,45 +932,11 @@ window.__ModuleLoader__.load({
       /**
        * Read the recent transcript from the live chat store.
        *
-       * Returns '' in a fresh session or when the store shape is not what we
-       * expect, so a missing API degrades to the previous context-free
-       * behaviour instead of failing the rewrite.
-       *
-       * Only `user` and `assistant` prose is kept: tool results, steering
-       * messages and turn errors describe the harness, not what was asked.
+       * Delegates to the shared `readTranscript`, which returns '' in a fresh
+       * session or when the store shape is unexpected, so a missing API degrades
+       * to the previous context-free behaviour instead of failing the rewrite.
        */
-      const readConversation = () => {
-        try {
-          const nodes = chatRef.current?.legacy?.nodes
-          if (!Array.isArray(nodes) || nodes.length === 0) return ''
-          const lines = []
-          for (const node of nodes) {
-            if (node === null || typeof node !== 'object') continue
-            const kind = node.kind
-            if (kind !== 'user' && kind !== 'assistant') continue
-            const blocks = kind === 'user' ? node.content : node.blocks
-            if (!Array.isArray(blocks)) continue
-            const parts = []
-            for (const block of blocks) {
-              if (block === null || typeof block !== 'object') continue
-              if (block.type !== 'text' && block.kind !== 'text') continue
-              if (typeof block.text !== 'string') continue
-              const piece = block.text.trim()
-              if (piece !== '') parts.push(piece)
-            }
-            const text = parts.join(' ').trim()
-            if (text === '') continue
-            const clipped = text.length > 800 ? `${text.slice(0, 800)}…` : text
-            lines.push(`${kind === 'user' ? '用户' : '助手'}：${clipped}`)
-          }
-          const recent = lines.slice(-8)
-          let transcript = recent.join('\n')
-          if (transcript.length > 4000) transcript = transcript.slice(transcript.length - 4000)
-          return transcript.trim()
-        } catch {
-          return ''
-        }
-      }
+      const readConversation = () => readTranscript(chatRef.current)
 
       const run = (chosenMode) => {
         if (!canWriteDraft) {
@@ -622,8 +1133,8 @@ window.__ModuleLoader__.load({
       inject: ['slots', 'locale'],
       apply(ctx) {
         ctx.effect(
-          () => ctx.locale.register('dsh-prompt-enhancer', { en: EN, 'zh-CN': ZH, zh: ZH }),
-          'dsh-prompt-enhancer: composer copy',
+          () => ctx.locale.register('dsh-wish-tree', { en: EN, 'zh-CN': ZH, zh: ZH }),
+          'dsh-wish-tree: composer and panel copy',
         )
         ctx.effect(() => {
           const element = document.createElement('style')
@@ -633,12 +1144,24 @@ window.__ModuleLoader__.load({
           return () => {
             element.remove()
           }
-        }, 'dsh-prompt-enhancer: stylesheet')
+        }, 'dsh-wish-tree: stylesheet')
         ctx.slots.inject('conversation.input.right', () =>
           ctx.slots.register(
-            { name: 'conversation.input.right', id: 'prompt-enhancer', order: 27, locale: 'dsh-prompt-enhancer' },
-            PromptEnhanceButton,
+            { name: 'conversation.input.right', id: 'wish-tree', order: 28, locale: 'dsh-wish-tree' },
+            WishTreeButton,
           ),
+        )
+        // Panel registrations. The sidebar icon and the `main` key share one id
+        // so the icon selects this panel; the composer button above is a
+        // fallback entry in case a future host stops routing icon clicks.
+        ctx.slots.inject('sidebar.panellist', () =>
+          ctx.slots.register(
+            { name: 'sidebar.panellist', id: PANEL_KEY, order: 40, label: '许愿树', locale: 'dsh-wish-tree' },
+            WishTreeSidebarIcon,
+          ),
+        )
+        ctx.slots.inject('main', () =>
+          ctx.slots.register({ name: 'main', key: PANEL_KEY, locale: 'dsh-wish-tree' }, WishTreePanel),
         )
       },
     }

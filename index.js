@@ -1,5 +1,5 @@
 /**
- * Host half of `dsh-prompt-enhancer`.
+ * Host half of `dsh-wish-tree` (许愿树).
  *
  * The Client half (`./client.js`) owns the composer button; this half owns the
  * one model call behind it and the two entry points that reach it:
@@ -26,9 +26,25 @@ import {
   resolveRoute,
   systemPromptFor,
   validateDraft,
+  buildReferenceBlock,
+  buildStyleHints,
+  resolveAudience,
+  resolveScene,
 } from './lib/prompt.js'
 import { describeTimeout } from './lib/timeout.js'
 import { wrapContext } from './lib/context.js'
+import { getSeedRecords } from './lib/seed.js'
+import { findRecord, normalizeLibrary, searchLibrary, toggleSaved } from './lib/wishlist.js'
+import { REMOTE_SOURCES, fetchSource, isRefreshDue, mergeLibraries } from './lib/sources.js'
+
+/**
+ * The seed library, normalized once at module load.
+ *
+ * A reference id can only resolve against this set: remote records live in the
+ * Client's cache, and re-fetching during a rewrite would put network I/O back on
+ * the request's critical path — the exact mistake v1.6.0 made with the model probe.
+ */
+const seedRecords = normalizeLibrary(getSeedRecords()).records
 
 export const inject = ['llm']
 
@@ -59,10 +75,14 @@ async function loadConfigSchema() {
 
 /** Exact path the Client half posts to over the connection bridge. */
 const API_PATH = '/api/prompt-enhancer/enhance'
+/** Library browse/refresh route, served through the same connection bridge. */
+const LIBRARY_PATH = '/api/wish-tree/library'
 /** Baseline path for a page served by the Host listener itself. */
 const WEB_PATH = '/prompt-enhance'
 /** Absolute ceiling; the effective limit may be lower for CJK-heavy drafts. */
 const MAX_BODY_BYTES = 1024 * 1024
+/** Library requests carry only an action and a cursor, so a small cap is plenty. */
+const LIBRARY_BODY_LIMIT = 16 * 1024
 
 /**
  * Register both entry points for the lifetime of this plugin.
@@ -90,6 +110,15 @@ export function apply(ctx, config) {
       methods: ['POST'],
       requestBody: 'buffered',
       fetch: (request) => respond(scope, settings, bodyLimit, recentCalls, request),
+    }),
+  )
+
+  mountRoute(ctx, ['connection'], `${LIBRARY_PATH} (connection bridge)`, (scope) =>
+    scope.connection.fetch.register({
+      path: LIBRARY_PATH,
+      methods: ['POST'],
+      requestBody: 'buffered',
+      fetch: (request) => respondLibrary(scope, request),
     }),
   )
 
@@ -135,7 +164,7 @@ function mountRoute(ctx, services, label, register) {
           /* a route that is already gone needs no cleanup */
         }
       }
-    }, `dsh-prompt-enhancer: ${label}`)
+    }, `dsh-wish-tree: ${label}`)
   }
 
   if (typeof ctx.inject === 'function') {
@@ -156,14 +185,14 @@ function warn(ctx, what, error) {
   const detail = error instanceof Error ? error.message : String(error)
   try {
     if (typeof ctx.logger?.warn === 'function') {
-      ctx.logger.warn(`dsh-prompt-enhancer: ${what}`)
+      ctx.logger.warn(`dsh-wish-tree: ${what}`)
     } else {
-      console.warn(`dsh-prompt-enhancer: ${what}`)
+      console.warn(`dsh-wish-tree: ${what}`)
     }
   } catch {
     /* a broken logger must not break activation */
   }
-  if (detail !== '') console.warn(`dsh-prompt-enhancer: ${what}: ${detail}`)
+  if (detail !== '') console.warn(`dsh-wish-tree: ${what}: ${detail}`)
 }
 
 /**
@@ -267,6 +296,11 @@ async function enhance(ctx, settings, recentCalls, body, signal) {
   // literally contains a closing tag cannot break out of the block.
   const nonce = randomNonce()
   const contextBlock = wrapContext(readContext(body), nonce)
+  // Scene and audience travel as keys; the Host owns the wording and rejects
+  // anything it does not recognise, so the Client cannot inject instructions.
+  const styleHints = buildStyleHints(resolveScene(body?.scene), resolveAudience(body?.audience))
+  // A chosen library entry is a reference for SHAPE, injected as tagged data.
+  const referenceBlock = buildReferenceBlock(readBasedOn(ctx, body), nonce)
   const rewritten = await rewrite(
     ctx,
     settings,
@@ -277,6 +311,7 @@ async function enhance(ctx, settings, recentCalls, body, signal) {
     signal,
     contextBlock,
     nonce,
+    { styleHints, referenceBlock },
   )
   const text = preserveMentions(rewritten.text, checked.mentions)
 
@@ -292,6 +327,23 @@ async function enhance(ctx, settings, recentCalls, body, signal) {
       timeoutMs,
     },
   }
+}
+
+/**
+ * Resolve the library record a wish is being shaped after, if any.
+ *
+ * The Client sends only an id. Looking the record up on the Host means the body
+ * that reaches the model is the one this build considers licensed, not whatever
+ * a stale or tampered Client happened to hold.
+ *
+ * @param ctx - Host context (unused today, kept for symmetry with readContext).
+ * @param {Record<string, unknown>} body - Parsed request body.
+ * @returns The chosen record, or `undefined`.
+ */
+function readBasedOn(ctx, body) {
+  const id = typeof body?.basedOn === 'string' ? body.basedOn.trim() : ''
+  if (id === '') return undefined
+  return findRecord(seedRecords, id)
 }
 
 /**
@@ -312,6 +364,81 @@ function readContext(body) {
   if (trimmed === '') return ''
   const limit = 8000
   return trimmed.length > limit ? trimmed.slice(trimmed.length - limit) : trimmed
+}
+
+/**
+ * Answer one library request: `list` (from the seed) or `refresh` (fetch remote).
+ *
+ * The route never fails hard on a refresh: an unreachable source returns
+ * `{ ok: false, reason }` with the seed still included, so the panel can keep
+ * working and only change its notice. Fetching happens HERE rather than in the
+ * browser because a DSH window has no direct network access to the source, and
+ * because the Host is where the licence gate already runs.
+ *
+ * @param ctx - Host context.
+ * @param {Request} request - Web Fetch request.
+ * @returns The JSON response.
+ */
+async function respondLibrary(ctx, request) {
+  let body
+  try {
+    body = await readRequestJson(request, LIBRARY_BODY_LIMIT)
+  } catch (error) {
+    const outcome = failureOutcome(error)
+    return new Response(JSON.stringify(outcome.payload), {
+      status: outcome.status,
+      headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
+    })
+  }
+
+  const action = typeof body?.action === 'string' ? body.action : 'list'
+  const payload = await libraryPayload(action, body)
+  return new Response(JSON.stringify(payload), {
+    status: 200,
+    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
+  })
+}
+
+/**
+ * Build one library response payload.
+ *
+ * Kept separate from the HTTP shell so the whole decision is testable.
+ *
+ * @param {string} action - 'list' | 'refresh'.
+ * @param {object} body - Parsed request body.
+ * @param {object} [deps] - Injectable fetch/clock for tests.
+ * @returns {Promise<object>} JSON payload.
+ */
+export async function libraryPayload(action, body, deps = {}) {
+  const seed = seedRecords
+
+  if (action !== 'refresh') {
+    return { ok: true, action: 'list', records: seed, source: 'seed', fetchedAt: '' }
+  }
+
+  // A refresh is allowed but never required: the caller decides when, and the
+  // seed is always part of the answer, so a failure still yields a usable list.
+  const source = REMOTE_SOURCES[0]
+  const result = await fetchSource(source, deps)
+  if (result.ok !== true) {
+    return {
+      ok: false,
+      action: 'refresh',
+      reason: result.reason ?? 'unknown',
+      records: seed,
+      source: 'seed',
+      fetchedAt: '',
+    }
+  }
+  const merged = mergeLibraries(seed, result.records)
+  return {
+    ok: true,
+    action: 'refresh',
+    records: merged.records,
+    source: 'remote',
+    fetchedAt: new Date().toISOString(),
+    rejected: result.rejected ?? 0,
+  }
 }
 
 /**
@@ -364,13 +491,27 @@ function chargeRateLimit(settings, recentCalls) {
  * @param signal - Aborts when the caller drops the request.
  * @param conversationContext - Wrapped history block, or ''.
  * @param nonce - The same delimiter token used for the context block.
+ * @param [options] - `{ styleHints, referenceBlock }`, both optional strings.
  * @returns `{ text, truncated }`.
  */
-async function rewrite(ctx, settings, mode, route, text, attachmentCount, signal, conversationContext = '', nonce) {
+async function rewrite(
+  ctx,
+  settings,
+  mode,
+  route,
+  text,
+  attachmentCount,
+  signal,
+  conversationContext = '',
+  nonce,
+  options = {},
+) {
   const count =
     typeof attachmentCount === 'number' && Number.isFinite(attachmentCount)
       ? Math.max(0, Math.trunc(attachmentCount))
       : 0
+  const styleHints = typeof options.styleHints === 'string' ? options.styleHints : ''
+  const referenceBlock = typeof options.referenceBlock === 'string' ? options.referenceBlock : ''
   let output = ''
   let failureReason
   let truncated = false
@@ -378,11 +519,21 @@ async function rewrite(ctx, settings, mode, route, text, attachmentCount, signal
   for await (const chunk of ctx.llm.stream({
     provider: route.provider,
     model: route.model,
-    system: systemPromptFor(mode),
+    // Scene/audience wording and a reference pattern only ever ADD to the base
+    // instruction, so an unadorned rewrite stays byte-identical to v1.7.0 and
+    // the quality baseline keeps comparing like with like.
+    system: `${systemPromptFor(mode)}${styleHints}`,
     messages: [
       {
         role: 'user',
-        content: [{ type: 'text', text: buildUserMessage(text, count, nonce, conversationContext) }],
+        content: [
+          {
+            type: 'text',
+            text: buildUserMessage(text, count, nonce, [conversationContext, referenceBlock]
+              .filter((part) => typeof part === 'string' && part.trim() !== '')
+              .join('\n\n')),
+          },
+        ],
       },
     ],
     temperature: settings.temperature,
@@ -406,7 +557,7 @@ async function rewrite(ctx, settings, mode, route, text, attachmentCount, signal
     // The upstream text can name request ids and vendor internals: log it, do not
     // hand it to the Client.
     console.warn(
-      `dsh-prompt-enhancer: model call failed (${String(failureReason.code ?? 'UNKNOWN')}): ${String(failureReason.message ?? '')}`,
+      `dsh-wish-tree: model call failed (${String(failureReason.code ?? 'UNKNOWN')}): ${String(failureReason.message ?? '')}`,
     )
     throw httpError(failureReason.code ?? 'LLM_FAILED', llmFailureMessage(failureReason.code))
   }
