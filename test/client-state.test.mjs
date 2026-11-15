@@ -185,3 +185,23 @@ test('standards are optional and sent as keys only', () => {
   assert.match(body, /if \(standards\.length > 0\) body\.standards = standards/, 'nothing sent when empty')
   assert.doesNotMatch(body, /你是一位/, 'no persona wording in the panel')
 })
+
+test('a slow generation shows elapsed time and offers a cancel', () => {
+  // Reported: "clicked generate, nothing happened for a long time". A reasoning
+  // model that cannot disable thinking legitimately takes minutes, so the panel
+  // must prove it is still working instead of looking frozen.
+  const panel = CLIENT.slice(CLIENT.indexOf('function WishTreePanel'))
+  const body = panel.slice(0, panel.indexOf('function WishTreeSidebarIcon'))
+  assert.match(body, /const \[elapsed, setElapsed\] = React\.useState\(0\)/, 'an elapsed counter exists')
+  assert.match(body, /setInterval\(/, 'it ticks while busy')
+  assert.match(body, /String\(elapsed\)/, 'the button shows the count')
+  assert.match(body, /abortRef\.current\?\.abort\(\)/, 'the wait can be cancelled')
+  assert.match(CLIENT, /slowHint/, 'a slow-model hint exists')
+})
+
+test('the elapsed timer stops once the request settles', () => {
+  const panel = CLIENT.slice(CLIENT.indexOf('function WishTreePanel'))
+  const body = panel.slice(0, panel.indexOf('function WishTreeSidebarIcon'))
+  assert.match(body, /if \(phase !== 'busy'\) \{[\s\S]{0,80}return undefined/, 'no timer when idle')
+  assert.match(body, /clearInterval\(timer\)/, 'the interval is cleaned up')
+})

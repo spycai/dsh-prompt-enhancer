@@ -65,6 +65,9 @@ window.__ModuleLoader__.load({
       audienceLabel: 'Audience',
       standardsLabel: 'Standards',
       standardsHint: 'Optional checklists for the result — not a persona. Leave empty and nothing is added.',
+      busyHint: 'The model is thinking. Slow reasoning models can take a few minutes.',
+      slowHint: 'Still running — this model reasons slowly and cannot be sped up. You can switch model or keep waiting.',
+      cancel: 'Cancel',
       generate: 'Generate',
       generating: 'Generating…',
       copied: 'Copied',
@@ -120,6 +123,9 @@ window.__ModuleLoader__.load({
       audienceLabel: '受众',
       standardsLabel: '成稿规范',
       standardsHint: '可选项：给结果加可核验的检查项，不是给模型加身份。不选就不追加任何内容。',
+      busyHint: '模型正在思考。推理模型可能需要几分钟。',
+      slowHint: '仍在生成 —— 该模型思考较慢且无法调快，可换模型或继续等待。',
+      cancel: '取消',
       generate: '生成',
       generating: '生成中…',
       copied: '已复制',
@@ -455,6 +461,15 @@ window.__ModuleLoader__.load({
       const [libLoading, setLibLoading] = React.useState(false)
       const [libNotice, setLibNotice] = React.useState('')
       const [libSource, setLibSource] = React.useState('seed')
+      /**
+       * Seconds elapsed since the current generation started.
+       *
+       * A reasoning model that cannot disable thinking (hy4free: efforts = [high],
+       * canDisableThinking false) can legitimately take minutes. Without a counter
+       * the panel looked frozen for the whole 240 s budget, so the user could not
+       * tell "still working" from "stuck" — the exact complaint this fixes.
+       */
+      const [elapsed, setElapsed] = React.useState(0)
 
       const abortRef = React.useRef(null)
       const mountedRef = React.useRef(true)
@@ -493,6 +508,22 @@ window.__ModuleLoader__.load({
       }, [])
 
       const flash = (message, tone) => setNote({ message, tone })
+
+      // Drive the elapsed counter only while a request is in flight, so no timer
+      // keeps running after the panel settles.
+      React.useEffect(() => {
+        if (phase !== 'busy') {
+          setElapsed(0)
+          return undefined
+        }
+        const startedAt = Date.now()
+        setElapsed(0)
+        const timer = setInterval(() => {
+          if (!mountedRef.current) return
+          setElapsed(Math.floor((Date.now() - startedAt) / 1000))
+        }, 1000)
+        return () => clearInterval(timer)
+      }, [phase])
 
       const visible = React.useMemo(() => {
         const needle = query.trim().toLowerCase()
@@ -652,7 +683,9 @@ window.__ModuleLoader__.load({
               disabled: idea.trim() === '' || phase === 'busy',
               onClick: generate,
             },
-            phase === 'busy' ? tr(t, 'generating', EN.generating) : tr(t, 'generate', EN.generate),
+            phase === 'busy'
+              ? `${tr(t, 'generating', EN.generating)} ${String(elapsed)}s`
+              : tr(t, 'generate', EN.generate),
           ),
         ),
         h(
@@ -683,6 +716,28 @@ window.__ModuleLoader__.load({
           ),
           h('span', { className: 'dsh-wt-status' }, tr(t, 'standardsHint', EN.standardsHint)),
         ),
+        phase !== 'busy'
+          ? null
+          : h(
+              'div',
+              { className: 'dsh-wt-row' },
+              h(
+                'span',
+                { className: 'dsh-wt-status', 'data-tone': elapsed >= 30 ? 'error' : 'plain' },
+                elapsed >= 30
+                  ? tr(t, 'slowHint', EN.slowHint)
+                  : tr(t, 'busyHint', EN.busyHint),
+              ),
+              h(
+                'button',
+                {
+                  type: 'button',
+                  className: 'dsh-wt-ghost',
+                  onClick: () => abortRef.current?.abort(),
+                },
+                tr(t, 'cancel', EN.cancel),
+              ),
+            ),
         note === null
           ? null
           : h('span', { className: 'dsh-wt-status', 'data-tone': note.tone, role: 'status' }, note.message),
