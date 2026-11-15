@@ -11,8 +11,18 @@ window.__ModuleLoader__.load({
      * serves a page the Host itself rendered, and the Host admits it first.
      */
     const ENDPOINTS = ['/api/prompt-enhancer/enhance', '/prompt-enhance']
-    /** Library browse/refresh route on the same bridge. */
-    const LIBRARY_ENDPOINT = '/api/wish-tree/library'
+    /**
+     * Library endpoints in probe order.
+     *
+     * The library MUST probe like the rewrite route does. It previously had a
+     * single `/api/...` path with the failure swallowed by an empty `.catch`, so
+     * when that path was unreachable the panel simply showed nothing and Refresh
+     * appeared to do nothing at all — no error, no hint. Two paths plus a visible
+     * error is the fix.
+     */
+    const LIBRARY_ENDPOINTS = ['/api/wish-tree/library', '/wish-tree-library']
+    /** Remembered once a path answers, so later calls skip the probe. */
+    let workingLibraryEndpoint = null
     /**
      * A rewrite that never settles must not pin the button in its busy state.
      *
@@ -81,6 +91,7 @@ window.__ModuleLoader__.load({
       libraryRefresh: 'Refresh',
       libraryRefreshing: 'Refreshing…',
       libraryEmpty: 'Nothing matches that search',
+      libraryNotLoaded: 'The library did not load. Press Refresh to try again.',
       libraryUse: 'Use as reference',
       libraryUsing: 'Referencing',
       librarySave: 'Save',
@@ -139,6 +150,7 @@ window.__ModuleLoader__.load({
       libraryRefresh: '刷新',
       libraryRefreshing: '正在刷新…',
       libraryEmpty: '没有匹配的条目',
+      libraryNotLoaded: '宝库没有加载成功 —— 请点「刷新」重试',
       libraryUse: '作为参考',
       libraryUsing: '参考中',
       librarySave: '收藏',
@@ -233,6 +245,56 @@ window.__ModuleLoader__.load({
      * error is definitive and throws; a document-shaped answer only rules that
      * endpoint out. A transport failure clears the cached endpoint so a Host
      * reconfigure is picked up on the next click.
+     */
+    /**
+     * Post one library request, probing both paths.
+     *
+     * Returns `{ payload }` on success or `{ failure }` describing why nothing
+     * came back. The caller shows that reason: a silent empty result was the
+     * original defect, not a missing payload.
+     *
+     * @param {object} body - Request body.
+     * @returns {Promise<{ payload?: object, failure?: string }>} Result.
+     */
+    async function postLibrary(body) {
+      const candidates = workingLibraryEndpoint === null ? LIBRARY_ENDPOINTS : [workingLibraryEndpoint]
+      let lastFailure = '无法连接提示词宝库服务'
+
+      for (const endpoint of candidates) {
+        let response
+        try {
+          response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(body),
+          })
+        } catch (error) {
+          if (endpoint === workingLibraryEndpoint) workingLibraryEndpoint = null
+          lastFailure = `无法连接提示词宝库服务（${String(error?.message ?? 'network')}）`
+          continue
+        }
+        const payload = await response.json().catch(() => undefined)
+        if (payload === undefined) {
+          // A non-JSON answer means no route of ours served this path.
+          if (endpoint === workingLibraryEndpoint) workingLibraryEndpoint = null
+          lastFailure = `提示词宝库路由未响应（HTTP ${String(response.status)}）`
+          continue
+        }
+        workingLibraryEndpoint = endpoint
+        if (response.ok !== true) {
+          return { failure: payload?.error?.message ?? `提示词宝库返回 HTTP ${String(response.status)}` }
+        }
+        return { payload }
+      }
+      return { failure: lastFailure }
+    }
+
+    /**
+     * Post one rewrite request, probing both endpoints.
+     *
+     * @param {object} body - Request body.
+     * @param {AbortSignal} [signal] - Cancellation.
+     * @returns {Promise<object>} Parsed payload.
      */
     async function postJson(body, signal) {
       const candidates = workingEndpoint === null ? ENDPOINTS : [workingEndpoint]
@@ -488,14 +550,14 @@ window.__ModuleLoader__.load({
       // panel is interactive immediately; a refresh is always user-initiated.
       React.useEffect(() => {
         let cancelled = false
-        fetch(LIBRARY_ENDPOINT, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ action: 'list' }),
-        })
-          .then((response) => (response.ok ? response.json() : undefined))
-          .then((payload) => {
+        postLibrary({ action: 'list' })
+          .then(({ payload, failure }) => {
             if (cancelled || !mountedRef.current) return
+            if (failure !== undefined) {
+              // Surface it: a silent empty library was the reported bug.
+              setLibNotice(failure)
+              return
+            }
             if (Array.isArray(payload?.records)) {
               setRecords(payload.records)
               setLibSource(typeof payload.source === 'string' ? payload.source : 'seed')
@@ -503,7 +565,7 @@ window.__ModuleLoader__.load({
             }
           })
           .catch(() => {
-            /* a missing seed leaves the panel usable: generation still works */
+            if (mountedRef.current) setLibNotice('加载提示词宝库失败')
           })
         return () => {
           cancelled = true
@@ -545,14 +607,14 @@ window.__ModuleLoader__.load({
         if (libLoading) return
         setLibLoading(true)
         setLibNotice('')
-        fetch(LIBRARY_ENDPOINT, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ action: 'refresh' }),
-        })
-          .then((response) => response.json())
-          .then((payload) => {
+        postLibrary({ action: 'refresh' })
+          .then(({ payload, failure }) => {
             if (!mountedRef.current) return
+            if (failure !== undefined) {
+              setLibSource('seed')
+              setLibNotice(failure)
+              return
+            }
             if (Array.isArray(payload?.records)) setRecords(payload.records)
             if (payload?.ok === true) {
               setLibSource('remote')
@@ -849,7 +911,13 @@ window.__ModuleLoader__.load({
               .join(' · '),
           ),
           visible.length === 0
-            ? h('span', { className: 'dsh-wt-status' }, tr(t, 'libraryEmpty', EN.libraryEmpty))
+            ? h(
+                'span',
+                { className: 'dsh-wt-status', 'data-tone': records.length === 0 ? 'error' : 'plain' },
+                records.length === 0
+                  ? tr(t, 'libraryNotLoaded', EN.libraryNotLoaded)
+                  : tr(t, 'libraryEmpty', EN.libraryEmpty),
+              )
             : h(
                 'div',
                 { className: 'dsh-wt-list' },

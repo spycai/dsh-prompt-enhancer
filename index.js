@@ -81,6 +81,15 @@ const API_PATH = '/api/prompt-enhancer/enhance'
 const LIBRARY_PATH = '/api/wish-tree/library'
 /** Baseline path for a page served by the Host listener itself. */
 const WEB_PATH = '/prompt-enhance'
+/**
+ * Node-listener path for the library.
+ *
+ * The library had only the connection-bridge path, so when a page's origin made
+ * `/api/...` unreachable there was no fallback and the panel silently showed
+ * nothing — the refresh appeared to do nothing at all. The rewrite route always
+ * had two paths; this one now matches it.
+ */
+const LIBRARY_WEB_PATH = '/wish-tree-library'
 /** Absolute ceiling; the effective limit may be lower for CJK-heavy drafts. */
 const MAX_BODY_BYTES = 1024 * 1024
 /** Library requests carry only an action and a cursor, so a small cap is plenty. */
@@ -121,6 +130,16 @@ export function apply(ctx, config) {
       methods: ['POST'],
       requestBody: 'buffered',
       fetch: (request) => respondLibrary(scope, request),
+    }),
+  )
+
+  mountRoute(ctx, ['webServer'], LIBRARY_WEB_PATH, (scope) =>
+    scope.webServer.register({
+      kind: 'exact',
+      path: LIBRARY_WEB_PATH,
+      handler: (req, res) => {
+        void handleLibraryNode(scope, req, res)
+      },
     }),
   )
 
@@ -263,6 +282,51 @@ async function respond(ctx, settings, bodyLimit, recentCalls, request) {
  * @param req - Incoming HTTP request.
  * @param res - HTTP response owned by this handler.
  */
+/**
+ * Node-listener handler for the library route.
+ *
+ * Mirrors `handleNode`'s admission check: the page must present a browser
+ * session, exactly like the rewrite route, so a local process cannot read the
+ * library without one.
+ *
+ * @param ctx - Host context.
+ * @param {object} req - Node request.
+ * @param {object} res - Node response.
+ * @returns {Promise<void>} Resolves once the response is written.
+ */
+async function handleLibraryNode(ctx, req, res) {
+  const connection = ctx.get('connection')
+  if (connection !== undefined) {
+    let admission
+    try {
+      admission = connection.admit({ headers: req.headers })
+    } catch {
+      admission = { rejection: 401 }
+    }
+    if (admission.rejection !== undefined) {
+      sendJson(res, admission.rejection, {
+        error: { code: 'UNAUTHORIZED', message: 'This route requires a browser session.' },
+      })
+      return
+    }
+  }
+
+  try {
+    if (req.method !== 'POST') {
+      res.setHeader('allow', 'POST')
+      sendJson(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'Use POST.' } })
+      return
+    }
+    const body = await readJsonBody(req, LIBRARY_BODY_LIMIT)
+    const action = typeof body?.action === 'string' ? body.action : 'list'
+    const payload = await libraryPayload(action, body, { profileDir: resolveProfileDir(ctx) })
+    sendJson(res, 200, payload)
+  } catch (error) {
+    const outcome = failureOutcome(error)
+    sendJson(res, outcome.status, outcome.payload)
+  }
+}
+
 async function handleNode(ctx, settings, bodyLimit, recentCalls, req, res) {
   const controller = new AbortController()
   res.on('close', () => {

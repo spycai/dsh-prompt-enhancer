@@ -141,11 +141,23 @@ test('the panel offers idea, scene, audience, generate, result and library', () 
   }
 })
 
-test('the library is loaded from the seed route, never fetched inline', () => {
+test('the library is loaded through the Host route, never fetched inline', () => {
   const panel = CLIENT.slice(CLIENT.indexOf('function WishTreePanel'))
   const body = panel.slice(0, panel.indexOf('function WishTreeSidebarIcon'))
-  assert.match(body, /LIBRARY_ENDPOINT/, 'the panel talks to the Host route')
+  assert.match(body, /postLibrary\(/, 'the panel talks to the Host route')
   assert.doesNotMatch(body, /raw\.githubusercontent/, 'the browser must not fetch the source directly')
+  assert.doesNotMatch(body, /fetch\(LIBRARY_ENDPOINT/, 'no bare single-path fetch')
+})
+
+test('a library request probes two paths and reports a visible failure', () => {
+  // The reported bug: a single `/api/...` path with an empty `.catch` meant the
+  // panel showed nothing and Refresh looked like a no-op, with no error at all.
+  assert.match(CLIENT, /const LIBRARY_ENDPOINTS = \['\/api\/wish-tree\/library', '\/wish-tree-library'\]/)
+  assert.match(CLIENT, /async function postLibrary\(body\)/)
+  assert.match(CLIENT, /lastFailure/, 'a failure reason is produced')
+  const panel = CLIENT.slice(CLIENT.indexOf('function WishTreePanel'))
+  const body = panel.slice(0, panel.indexOf('function WishTreeSidebarIcon'))
+  assert.match(body, /setLibNotice\(failure\)/, 'the reason reaches the panel')
 })
 
 test('a failed refresh keeps the list and only shows a notice', () => {

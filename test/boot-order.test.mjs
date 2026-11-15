@@ -118,7 +118,7 @@ test('routes wait for their services instead of vanishing when they are late', (
   // as a Desktop boot where the plugin activates before the web server.
   assert.equal(harness.routes.size, 0, 'nothing is registered synchronously')
   assert.equal(harness.webRoutes.size, 0, 'nothing is registered synchronously')
-  assert.equal(harness.pending.length, 3, 'every route waits for its service')
+  assert.equal(harness.pending.length, 4, 'every route waits for its service')
 
   harness.release()
 
@@ -136,6 +136,6 @@ test('each route asks only for the service it needs', () => {
   // Both routes are mounted on the reactive injection, three registrations in
   // total since v1.8 added the library route. Each names exactly one service,
   // and that service is never `llm` — `llm` arrives as a hard dependency.
-  assert.deepEqual([...requested].sort(), ['connection', 'connection', 'webServer'])
-  assert.equal(requested.filter((names) => names === 'webServer').length, 1)
+  assert.deepEqual([...requested].sort(), ['connection', 'connection', 'webServer', 'webServer'])
+  assert.equal(requested.filter((names) => names === 'webServer').length, 2, 'both node routes use webServer')
 })
