@@ -63,3 +63,19 @@ test('getSeedRecords returns a copy that a caller cannot use to mutate the seed'
   assert.notEqual(second[0].title, 'mutated')
   assert.equal(second[0].tags.includes('injected'), false)
 })
+
+test('the deck standards express checklists, never a persona', () => {
+  // Three entries were added after a user asked whether prompts should open with
+  // "you are an experienced X master". They must stay verifiable.
+  const deck = SEED_RECORDS.filter((record) => record.tags.includes('deck') || /Deck/.test(record.title))
+  assert.ok(deck.length >= 3, `expected at least 3 deck references, got ${deck.length}`)
+  for (const record of deck) {
+    assert.equal(/你是一位|You are an? /i.test(record.body), false, `${record.id} uses persona phrasing`)
+    assert.match(record.body, /check|rule|standard|Reject|Report|no longer|at most|at least/i, `${record.id} is not verifiable`)
+  }
+})
+
+test('the design category now has enough references to be useful', () => {
+  const count = SEED_RECORDS.filter((record) => record.category === 'design').length
+  assert.ok(count >= 6, `expected at least 6 design entries, got ${count}`)
+})

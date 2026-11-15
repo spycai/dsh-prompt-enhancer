@@ -167,3 +167,21 @@ test('the panel survives a slot that does not expose useChat', () => {
   // simply yields an empty transcript.
   assert.match(CLIENT, /function readTranscript\(chat\)/)
 })
+
+test('delivery standards are a checklist, not a persona', () => {
+  // The user asked whether an opening "you are an experienced X master" would
+  // improve the prompt. It does not: it decides nothing and pads the result.
+  // The panel therefore offers verifiable standards and says so in the hint.
+  assert.match(CLIENT, /const STANDARDS = \[/)
+  assert.match(CLIENT, /Optional checklists for the result — not a persona/)
+  assert.match(CLIENT, /可选项：给结果加可核验的检查项，不是给模型加身份/)
+  assert.match(CLIENT, /standardsLabel: '成稿规范'/)
+})
+
+test('standards are optional and sent as keys only', () => {
+  const panel = CLIENT.slice(CLIENT.indexOf('function WishTreePanel'))
+  const body = panel.slice(0, panel.indexOf('function WishTreeSidebarIcon'))
+  assert.match(body, /const \[standards, setStandards\] = React\.useState\(\[\]\)/, 'off by default')
+  assert.match(body, /if \(standards\.length > 0\) body\.standards = standards/, 'nothing sent when empty')
+  assert.doesNotMatch(body, /你是一位/, 'no persona wording in the panel')
+})

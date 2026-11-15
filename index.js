@@ -36,6 +36,7 @@ import { wrapContext } from './lib/context.js'
 import { getSeedRecords } from './lib/seed.js'
 import { findRecord, normalizeLibrary, searchLibrary, toggleSaved } from './lib/wishlist.js'
 import { REMOTE_SOURCES, fetchSource, isRefreshDue, mergeLibraries } from './lib/sources.js'
+import { buildStandardsBlock } from './lib/standards.js'
 
 /**
  * The seed library, normalized once at module load.
@@ -299,6 +300,11 @@ async function enhance(ctx, settings, recentCalls, body, signal) {
   // Scene and audience travel as keys; the Host owns the wording and rejects
   // anything it does not recognise, so the Client cannot inject instructions.
   const styleHints = buildStyleHints(resolveScene(body?.scene), resolveAudience(body?.audience))
+  // Optional delivery standards. The Client sends keys; this module owns the
+  // wording and drops anything it does not recognise, so a hostile payload cannot
+  // smuggle an instruction in. Empty when nothing is selected, which keeps an
+  // unadorned rewrite byte-identical to the previous release.
+  const standardsBlock = buildStandardsBlock(body?.standards)
   // A chosen library entry is a reference for SHAPE, injected as tagged data.
   const referenceBlock = buildReferenceBlock(readBasedOn(ctx, body), nonce)
   const rewritten = await rewrite(
@@ -311,7 +317,7 @@ async function enhance(ctx, settings, recentCalls, body, signal) {
     signal,
     contextBlock,
     nonce,
-    { styleHints, referenceBlock },
+    { styleHints, referenceBlock, standardsBlock },
   )
   const text = preserveMentions(rewritten.text, checked.mentions)
 
@@ -512,6 +518,7 @@ async function rewrite(
       : 0
   const styleHints = typeof options.styleHints === 'string' ? options.styleHints : ''
   const referenceBlock = typeof options.referenceBlock === 'string' ? options.referenceBlock : ''
+  const standardsBlock = typeof options.standardsBlock === 'string' ? options.standardsBlock : ''
   let output = ''
   let failureReason
   let truncated = false
@@ -519,10 +526,11 @@ async function rewrite(
   for await (const chunk of ctx.llm.stream({
     provider: route.provider,
     model: route.model,
-    // Scene/audience wording and a reference pattern only ever ADD to the base
-    // instruction, so an unadorned rewrite stays byte-identical to v1.7.0 and
-    // the quality baseline keeps comparing like with like.
-    system: `${systemPromptFor(mode)}${styleHints}`,
+    // Scene/audience wording, delivery standards and a reference pattern only
+    // ever ADD to the base instruction, so an unadorned rewrite stays
+    // byte-identical to the previous release and the quality baseline keeps
+    // comparing like with like.
+    system: `${systemPromptFor(mode)}${styleHints}${standardsBlock}`,
     messages: [
       {
         role: 'user',

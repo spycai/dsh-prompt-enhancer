@@ -63,6 +63,8 @@ window.__ModuleLoader__.load({
       wishPlaceholder: 'e.g. make a deck for a client demo next week',
       sceneLabel: 'Scene',
       audienceLabel: 'Audience',
+      standardsLabel: 'Standards',
+      standardsHint: 'Optional checklists for the result — not a persona. Leave empty and nothing is added.',
       generate: 'Generate',
       generating: 'Generating…',
       copied: 'Copied',
@@ -116,6 +118,8 @@ window.__ModuleLoader__.load({
       wishPlaceholder: '例如：下周给客户做产品演示，做个PPT',
       sceneLabel: '场景',
       audienceLabel: '受众',
+      standardsLabel: '成稿规范',
+      standardsHint: '可选项：给结果加可核验的检查项，不是给模型加身份。不选就不追加任何内容。',
       generate: '生成',
       generating: '生成中…',
       copied: '已复制',
@@ -323,6 +327,17 @@ window.__ModuleLoader__.load({
       { key: 'design', zh: '设计', en: 'Design' },
       { key: 'learning', zh: '学习', en: 'Learning' },
     ]
+    /**
+     * Optional delivery standards. These are CHECKLISTS, not personas: "at most
+     * three type sizes" is verifiable, while "you are a design master" is not.
+     * Keys only — the Host owns the wording.
+     */
+    const STANDARDS = [
+      { key: 'deck', zh: '演示稿', en: 'Deck' },
+      { key: 'document', zh: '文档', en: 'Document' },
+      { key: 'code', zh: '代码', en: 'Code' },
+      { key: 'writing', zh: '文案', en: 'Copy' },
+    ]
 
     /** Wand glyph. Inherits the control color so it matches the composer row. */
     function WandIcon() {
@@ -424,6 +439,7 @@ window.__ModuleLoader__.load({
       const [idea, setIdea] = React.useState('')
       const [scene, setScene] = React.useState('general')
       const [audience, setAudience] = React.useState('auto')
+      const [standards, setStandards] = React.useState([])
       const [phase, setPhase] = React.useState('idle')
       const [result, setResult] = React.useState('')
       const [error, setError] = React.useState('')
@@ -533,6 +549,9 @@ window.__ModuleLoader__.load({
         const timer = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS)
         const context = readTranscript(chatRef.current)
         const body = { text: wish, mode: 'rewrite', scene, audience }
+        // Standards travel as keys. Nothing is sent when the list is empty, so an
+        // untouched panel behaves exactly like the previous release.
+        if (standards.length > 0) body.standards = standards
         if (context !== '') body.context = context
         if (basedOn !== '') body.basedOn = basedOn
 
@@ -635,6 +654,34 @@ window.__ModuleLoader__.load({
             },
             phase === 'busy' ? tr(t, 'generating', EN.generating) : tr(t, 'generate', EN.generate),
           ),
+        ),
+        h(
+          'div',
+          { className: 'dsh-wt-section' },
+          h(
+            'div',
+            { className: 'dsh-wt-row' },
+            h('span', { className: 'dsh-wt-label' }, tr(t, 'standardsLabel', EN.standardsLabel)),
+            ...STANDARDS.map((standard) =>
+              h(
+                'button',
+                {
+                  key: standard.key,
+                  type: 'button',
+                  className: 'dsh-wt-ghost',
+                  'data-on': standards.includes(standard.key) ? 'true' : 'false',
+                  onClick: () =>
+                    setStandards((current) =>
+                      current.includes(standard.key)
+                        ? current.filter((value) => value !== standard.key)
+                        : [...current, standard.key],
+                    ),
+                },
+                zh ? standard.zh : standard.en,
+              ),
+            ),
+          ),
+          h('span', { className: 'dsh-wt-status' }, tr(t, 'standardsHint', EN.standardsHint)),
         ),
         note === null
           ? null
