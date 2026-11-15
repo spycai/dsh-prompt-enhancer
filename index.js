@@ -27,6 +27,9 @@ import {
   systemPromptFor,
   validateDraft,
   buildReferenceBlock,
+  buildRefineMessage,
+  buildRefineHints,
+  REFINE_LIMITS,
   buildStyleHints,
   resolveAudience,
   resolveScene,
@@ -38,6 +41,14 @@ import { findRecord, normalizeLibrary } from './lib/wishlist.js'
 import { REMOTE_SOURCES, fetchAllSources, refreshDecision, mergeLibraries } from './lib/sources.js'
 import { buildStandardsBlock } from './lib/standards.js'
 import { reclassifyRecords } from './lib/classify.js'
+import { checkPromptElements, extractPlaceholders } from './lib/placeholders.js'
+import {
+  appendPersonal,
+  buildPersonalRecord,
+  readPersonal,
+  removePersonal,
+  writePersonal,
+} from './lib/personal.js'
 import { readCache, resolveProfileDir, writeCache } from './lib/library-cache.js'
 
 /**
@@ -419,6 +430,20 @@ async function enhance(ctx, settings, recentCalls, body, signal) {
   const standardsBlock = buildStandardsBlock(body?.standards)
   // A chosen library entry is a reference for SHAPE, injected as tagged data.
   const referenceBlock = buildReferenceBlock(readBasedOn(ctx, body), nonce)
+  // A refinement edits the prompt already on screen rather than re-deriving it
+  // from the wish. Re-deriving would discard every choice the previous pass made,
+  // so "make it shorter" would return a different prompt, not a shorter one.
+  const refineOf = typeof body?.refineOf === 'string' ? body.refineOf.trim() : ''
+  // Refuse rather than truncate. Silently cutting the current prompt would make
+  // the model revise a sentence fragment, and the user would get a mangled result
+  // with no indication why.
+  if (refineOf !== '' && refineOf.length > REFINE_LIMITS.maxPreviousChars) {
+    return errorOutcome(
+      413,
+      'REFINE_TOO_LONG',
+      `待调整的提示词超过 ${String(REFINE_LIMITS.maxPreviousChars)} 字，已中止以免截断后误改。`,
+    )
+  }
   const rewritten = await rewrite(
     ctx,
     settings,
@@ -429,7 +454,7 @@ async function enhance(ctx, settings, recentCalls, body, signal) {
     signal,
     contextBlock,
     nonce,
-    { styleHints, referenceBlock, standardsBlock },
+    { styleHints, referenceBlock, standardsBlock, refineOf },
   )
   const text = preserveMentions(rewritten.text, checked.mentions)
 
@@ -443,6 +468,13 @@ async function enhance(ctx, settings, recentCalls, body, signal) {
       truncated: rewritten.truncated,
       mentions: checked.mentions,
       timeoutMs,
+      // The blanks to fill and the four-element self-check are computed HERE
+      // rather than in the Client. The Client cannot import an ESM module, so
+      // computing them there would mean a second copy of the same rules — the
+      // exact duplication the audit flagged for the library filter.
+      placeholders: extractPlaceholders(text),
+      missing: checkPromptElements(text).missing,
+      refine: refineOf !== '',
     },
   }
 }
@@ -538,7 +570,39 @@ export async function libraryPayload(action, body, deps = {}) {
   const seed = seedRecords
   const profileDir = typeof deps.profileDir === 'string' ? deps.profileDir : undefined
 
+  // Personal prompts are handled before anything else: they are the only records
+  // that cannot be re-fetched, and saving must never depend on a refresh.
+  if (action === 'save') {
+    if (profileDir === undefined) return { ok: false, action: 'save', reason: 'no-profile' }
+    const record = buildPersonalRecord({ title: body?.title, body: body?.body })
+    if (record === undefined) return { ok: false, action: 'save', reason: 'invalid' }
+    const current = readPersonal(profileDir)
+    const merged = appendPersonal(current, record)
+    if (!merged.added) return { ok: false, action: 'save', reason: merged.reason ?? 'refused' }
+    if (writePersonal(profileDir, merged.records) !== true) {
+      return { ok: false, action: 'save', reason: 'write-failed' }
+    }
+    return { ok: true, action: 'save', record, total: merged.records.length }
+  }
+
+  if (action === 'forget') {
+    if (profileDir === undefined) return { ok: false, action: 'forget', reason: 'no-profile' }
+    const current = readPersonal(profileDir)
+    const next = removePersonal(current, typeof body?.id === 'string' ? body.id : '')
+    if (next.length === current.length) return { ok: false, action: 'forget', reason: 'not-found' }
+    if (writePersonal(profileDir, next) !== true) {
+      return { ok: false, action: 'forget', reason: 'write-failed' }
+    }
+    return { ok: true, action: 'forget', total: next.length }
+  }
+
   if (action !== 'refresh') {
+    // The user's own prompts lead the list: they are the most relevant entries
+    // and the only ones that cannot be re-fetched, so they must never be buried
+    // under the built-in seed.
+    const personal = profileDir === undefined ? [] : readPersonal(profileDir)
+    const lead = (records) => [...personal, ...records]
+
     // Serve the cache when there is one: a restart used to forget every fetched
     // prompt and drop back to the seed, which made "the library grows" untrue.
     const cached = profileDir === undefined ? undefined : readCache(profileDir)
@@ -550,7 +614,7 @@ export async function libraryPayload(action, body, deps = {}) {
       return {
         ok: true,
         action: 'list',
-        records: merged.records,
+        records: lead(merged.records),
         source: 'cache',
         fetchedAt: cached.fetchedAt,
       }
@@ -562,7 +626,7 @@ export async function libraryPayload(action, body, deps = {}) {
     return {
       ok: true,
       action: 'list',
-      records: seed,
+      records: lead(seed),
       source: 'seed',
       fetchedAt: '',
       diag: {
@@ -693,6 +757,7 @@ async function rewrite(
   const styleHints = typeof options.styleHints === 'string' ? options.styleHints : ''
   const referenceBlock = typeof options.referenceBlock === 'string' ? options.referenceBlock : ''
   const standardsBlock = typeof options.standardsBlock === 'string' ? options.standardsBlock : ''
+  const refineOf = typeof options.refineOf === 'string' ? options.refineOf : ''
   let output = ''
   let failureReason
   let truncated = false
@@ -704,16 +769,24 @@ async function rewrite(
     // ever ADD to the base instruction, so an unadorned rewrite stays
     // byte-identical to the previous release and the quality baseline keeps
     // comparing like with like.
-    system: `${systemPromptFor(mode)}${styleHints}${standardsBlock}`,
+    system: `${systemPromptFor(mode)}${styleHints}${standardsBlock}${buildRefineHints(refineOf !== '')}`,
     messages: [
       {
         role: 'user',
         content: [
           {
             type: 'text',
-            text: buildUserMessage(text, count, nonce, [conversationContext, referenceBlock]
-              .filter((part) => typeof part === 'string' && part.trim() !== '')
-              .join('\n\n')),
+            text:
+              refineOf === ''
+                ? buildUserMessage(
+                    text,
+                    count,
+                    nonce,
+                    [conversationContext, referenceBlock]
+                      .filter((part) => typeof part === 'string' && part.trim() !== '')
+                      .join('\n\n'),
+                  )
+                : buildRefineMessage(refineOf, text, nonce),
           },
         ],
       },

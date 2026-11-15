@@ -99,6 +99,22 @@ window.__ModuleLoader__.load({
       libraryLicence: 'Licence',
       librarySource: 'Source',
       close: 'Close',
+      fillTitle: 'Fill in the blanks',
+      fillPlaceholder: 'Your answer',
+      checkOk: 'Names the goal, format, audience and constraint',
+      checkMissing: 'Still missing: ',
+      refineTitle: 'Adjust this prompt',
+      refinePlaceholder: 'e.g. cut it to 8 pages, use a more formal tone',
+      refineGo: 'Adjust',
+      saveToLibrary: 'Save to my library',
+      savedToLibrary: 'Saved to your library',
+      saveDuplicate: 'That prompt is already in your library',
+      saveFull: 'Your library is full (200 prompts)',
+      saveFailed: 'Could not save it',
+      mineBadge: 'Mine',
+      deleteMine: 'Delete',
+      deletedMine: 'Removed from your library',
+      deleteFailed: 'Could not remove it',
     }
     const ZH = {
       label: '许愿树',
@@ -158,6 +174,22 @@ window.__ModuleLoader__.load({
       libraryLicence: '许可',
       librarySource: '来源',
       close: '关闭',
+      fillTitle: '需要你补充',
+      fillPlaceholder: '填写后自动替换',
+      checkOk: '目标、格式、受众、约束都齐了',
+      checkMissing: '还缺：',
+      refineTitle: '调整这份提示词',
+      refinePlaceholder: '例如：压到 8 页、语气更正式',
+      refineGo: '调整',
+      saveToLibrary: '存入我的宝库',
+      savedToLibrary: '已存入你的宝库',
+      saveDuplicate: '这条已经在你的宝库里了',
+      saveFull: '宝库已满（200 条）',
+      saveFailed: '存入失败',
+      mineBadge: '我的',
+      deleteMine: '删除',
+      deletedMine: '已从你的宝库移除',
+      deleteFailed: '删除失败',
     }
 
     /** Stable failure code → copy key. */
@@ -232,7 +264,10 @@ window.__ModuleLoader__.load({
       '.dsh-wt-itemmeta{font-size:11px;line-height:16px;color:var(--dsw-alias-label-secondary);display:flex;gap:10px;flex-wrap:wrap}',
       '.dsh-wt-itembody{font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}',
       '.dsh-wt-itemacts{display:flex;gap:6px;flex-wrap:wrap}',
-      '.dsh-wt-sidebtn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;line-height:0}',
+      '.dsh-wt-badge{display:inline-block;padding:1px 7px;border-radius:10px;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-inverse,#fff);font-size:10px;line-height:16px;font-weight:600;margin-left:8px;vertical-align:middle}',
+      '.dsh-wt-fills{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border:1px solid var(--dsw-alias-border-l1);border-radius:8px;background:var(--dsw-alias-bg-layer-2)}',
+      '.dsh-wt-fillrow{display:flex;align-items:center;gap:10px}',
+      '.dsh-wt-filllabel{font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary);min-width:72px;flex-shrink:0}',      '.dsh-wt-sidebtn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;line-height:0}',
       '.dsh-wt-sidebtn:hover{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}',
       '.dsh-wt-sidebtn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}',
     ].join('')
@@ -536,6 +571,35 @@ window.__ModuleLoader__.load({
       license: 'CC0-1.0',
       fetchedAt: '',
     }))
+    /** The source label the Host stamps on records the user saved themselves. */
+    const PERSONAL_SOURCE = '个人'
+
+    /**
+     * Whether a record is one the user saved.
+     *
+     * Checked by source label rather than by id prefix, because the label is what
+     * the Host writes and is visible in the UI anyway.
+     *
+     * @param {object} record - Library record.
+     * @returns {boolean} True for a saved record.
+     */
+    function isPersonalRecord(record) {
+      return record !== null && typeof record === 'object' && record.source === PERSONAL_SOURCE
+    }
+
+    /**
+     * One-tap refinements.
+     *
+     * These are the changes people actually want after reading a result: shorter,
+     * more formal, or with a hard limit. Anything else goes through the free-text
+     * field, so this list should stay short.
+     */
+    const QUICK_REFINES = [
+      { key: 'shorter', zh: '再短一点', en: 'Shorter' },
+      { key: 'formal', zh: '更正式', en: 'More formal' },
+      { key: 'constraint', zh: '加硬性约束', en: 'Add a limit' },
+    ]
+
     /** Wand glyph. Inherits the control color so it matches the composer row. */
     function WandIcon() {
       return h(
@@ -642,6 +706,13 @@ window.__ModuleLoader__.load({
       const [error, setError] = React.useState('')
       const [basedOn, setBasedOn] = React.useState('')
       const [note, setNote] = React.useState(null)
+      /** Blanks the Host found in the result, and what the user typed into them. */
+      const [placeholders, setPlaceholders] = React.useState([])
+      const [fills, setFills] = React.useState({})
+      /** Elements the Host reports as missing, shown as a self-check line. */
+      const [missingParts, setMissingParts] = React.useState([])
+      /** Free-text refinement instruction. */
+      const [refineText, setRefineText] = React.useState('')
 
       // Start from the inlined seed, not an empty array: a failed load used to
       // leave the library literally blank with no way to tell why.
@@ -702,6 +773,21 @@ window.__ModuleLoader__.load({
           cancelled = true
         }
       }, [])
+
+      /**
+       * The result with the user's answers substituted in.
+       *
+       * Copying or sending must use this, not `result`: a prompt that still says
+       * `[请补充：日期]` defeats the purpose of filling the form.
+       */
+      const filledResult = React.useMemo(() => {
+        let text = result
+        for (const item of placeholders) {
+          const value = (fills[item.label] ?? '').trim()
+          if (value !== '') text = text.split(item.token).join(value)
+        }
+        return text
+      }, [result, placeholders, fills])
 
       const flash = (message, tone) => setNote({ message, tone })
 
@@ -786,6 +872,12 @@ window.__ModuleLoader__.load({
             if (!mountedRef.current) return
             if (typeof payload?.text === 'string' && payload.text.trim() !== '') {
               setResult(payload.text.trim())
+              // The Host computes the blanks and the self-check; the Client only
+              // renders them, so the rules live in one place.
+              setPlaceholders(Array.isArray(payload.placeholders) ? payload.placeholders : [])
+              setMissingParts(Array.isArray(payload.missing) ? payload.missing : [])
+              setFills({})
+              setRefineText('')
               setPhase('done')
               setError('')
             } else {
@@ -805,8 +897,123 @@ window.__ModuleLoader__.load({
           })
       }
 
+      /**
+       * Ask the Host to revise the prompt on screen.
+       *
+       * Sends the current text as `refineOf`, so the model edits what exists
+       * instead of re-deriving from the wish — otherwise "make it shorter" would
+       * return a different prompt rather than a shorter one.
+       *
+       * @param {string} instruction - What to change.
+       */
+      const refine = (instruction) => {
+        const change = String(instruction ?? '').trim()
+        if (change === '' || result === '' || phase === 'busy') return
+        setPhase('busy')
+        setError('')
+
+        const controller = new AbortController()
+        abortRef.current = controller
+        const timer = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS)
+        const body = { text: change, mode: 'rewrite', refineOf: result }
+
+        postJson(body, controller.signal)
+          .then((payload) => {
+            if (!mountedRef.current) return
+            if (typeof payload?.text === 'string' && payload.text.trim() !== '') {
+              setResult(payload.text.trim())
+              // New text means new blanks: keep the old answers only if the label
+              // still exists, so a rewritten prompt does not silently lose input.
+              setPlaceholders(Array.isArray(payload.placeholders) ? payload.placeholders : [])
+              setMissingParts(Array.isArray(payload.missing) ? payload.missing : [])
+              setFills((current) => {
+                const next = {}
+                for (const item of Array.isArray(payload.placeholders) ? payload.placeholders : []) {
+                  if (typeof current[item.label] === 'string') next[item.label] = current[item.label]
+                }
+                return next
+              })
+              setRefineText('')
+              setPhase('done')
+            } else {
+              setPhase('error')
+              setError('模型没有返回内容')
+            }
+          })
+          .catch((failure) => {
+            if (!mountedRef.current) return
+            setPhase('error')
+            setError(errorText(t, failure))
+          })
+          .finally(() => {
+            clearTimeout(timer)
+            abortRef.current = null
+            if (mountedRef.current) setPhase((current) => (current === 'busy' ? 'idle' : current))
+          })
+      }
+
+      /**
+       * Remove one saved prompt.
+       *
+       * Optimistic in the list but not in the count: the entry disappears at once
+       * and is restored if the Host refuses, so a failed delete never leaves the
+       * list disagreeing with the file on disk.
+       *
+       * @param {string} id - Record id.
+       */
+      const forgetFromLibrary = (id) => {
+        const previous = records
+        setRecords((current) => current.filter((record) => record.id !== id))
+        postLibrary({ action: 'forget', id })
+          .then(({ payload, failure }) => {
+            if (!mountedRef.current) return
+            if (failure !== undefined || payload?.ok !== true) {
+              setRecords(previous)
+              flash(failure ?? tr(t, 'deleteFailed', EN.deleteFailed), 'error')
+              return
+            }
+            flash(tr(t, 'deletedMine', EN.deletedMine), 'done')
+          })
+          .catch(() => {
+            if (!mountedRef.current) return
+            setRecords(previous)
+            flash(tr(t, 'deleteFailed', EN.deleteFailed), 'error')
+          })
+      }
+
+      /** Store the current prompt in the user's own library. */
+      const saveToLibrary = () => {
+        const text = filledResult.trim()
+        if (text === '') return
+        postLibrary({ action: 'save', body: text })
+          .then(({ payload, failure }) => {
+            if (!mountedRef.current) return
+            if (failure !== undefined) {
+              flash(failure, 'error')
+              return
+            }
+            if (payload?.ok === true) {
+              flash(tr(t, 'savedToLibrary', EN.savedToLibrary), 'done')
+            } else {
+              const reason = String(payload?.reason ?? '')
+              flash(
+                reason === 'duplicate'
+                  ? tr(t, 'saveDuplicate', EN.saveDuplicate)
+                  : reason === 'full'
+                    ? tr(t, 'saveFull', EN.saveFull)
+                    : tr(t, 'saveFailed', EN.saveFailed),
+                'error',
+              )
+            }
+          })
+          .catch(() => {
+            if (mountedRef.current) flash(tr(t, 'saveFailed', EN.saveFailed), 'error')
+          })
+      }
+
       const copyResult = () => {
-        const text = result
+        // Filled, not raw: copying a prompt that still says [请补充：…] is useless.
+        const text = filledResult
         if (text === '') return
         try {
           void navigator.clipboard?.writeText(text)
@@ -817,8 +1024,8 @@ window.__ModuleLoader__.load({
       }
 
       const sendBack = () => {
-        if (result === '' || typeof inputActions?.setDraft !== 'function') return
-        inputActions.setDraft(result)
+        if (filledResult === '' || typeof inputActions?.setDraft !== 'function') return
+        inputActions.setDraft(filledResult)
         flash(tr(t, 'sentBack', EN.sentBack), 'done')
       }
 
@@ -949,7 +1156,16 @@ window.__ModuleLoader__.load({
               'div',
               { className: 'dsh-wt-section' },
               h('span', { className: 'dsh-wt-label' }, tr(t, 'panelTitle', EN.panelTitle)),
-              h('div', { className: 'dsh-wt-result' }, result),
+              h('div', { className: 'dsh-wt-result' }, filledResult),
+              // Self-check against the four elements every prompt must name. The
+              // Host computes which are missing, so this is a report, not a guess.
+              missingParts.length === 0
+                ? h('span', { className: 'dsh-wt-status', 'data-tone': 'done' }, tr(t, 'checkOk', EN.checkOk))
+                : h(
+                    'span',
+                    { className: 'dsh-wt-status' },
+                    `${tr(t, 'checkMissing', EN.checkMissing)}${missingParts.join(' / ')}`,
+                  ),
               h(
                 'div',
                 { className: 'dsh-wt-actions' },
@@ -958,6 +1174,81 @@ window.__ModuleLoader__.load({
                   'button',
                   { type: 'button', className: 'dsh-wt-ghost', onClick: sendBack },
                   tr(t, 'sendBack', EN.sendBack),
+                ),
+                h(
+                  'button',
+                  { type: 'button', className: 'dsh-wt-ghost', onClick: saveToLibrary },
+                  tr(t, 'saveToLibrary', EN.saveToLibrary),
+                ),
+              ),
+              // Blanks. Rendered only when the prompt actually has them, and each
+              // one writes straight into the text above.
+              placeholders.length === 0
+                ? null
+                : h(
+                    'div',
+                    { className: 'dsh-wt-fills' },
+                    h('span', { className: 'dsh-wt-label' }, tr(t, 'fillTitle', EN.fillTitle)),
+                    ...placeholders.map((item) =>
+                      h(
+                        'label',
+                        { key: item.label, className: 'dsh-wt-fillrow' },
+                        h('span', { className: 'dsh-wt-filllabel' }, item.label),
+                        h('input', {
+                          className: 'dsh-wt-search',
+                          value: fills[item.label] ?? '',
+                          placeholder: tr(t, 'fillPlaceholder', EN.fillPlaceholder),
+                          onChange: (event) =>
+                            setFills((current) => ({ ...current, [item.label]: event.target.value })),
+                        }),
+                      ),
+                    ),
+                  ),
+              // Refinement. Edits the prompt above instead of regenerating it, so
+              // choices already made survive.
+              h(
+                'div',
+                { className: 'dsh-wt-fills' },
+                h('span', { className: 'dsh-wt-label' }, tr(t, 'refineTitle', EN.refineTitle)),
+                h(
+                  'div',
+                  { className: 'dsh-wt-actions' },
+                  ...QUICK_REFINES.map((quick) =>
+                    h(
+                      'button',
+                      {
+                        key: quick.key,
+                        type: 'button',
+                        className: 'dsh-wt-ghost',
+                        disabled: phase === 'busy',
+                        onClick: () => refine(zh ? quick.zh : quick.en),
+                      },
+                      zh ? quick.zh : quick.en,
+                    ),
+                  ),
+                ),
+                h(
+                  'div',
+                  { className: 'dsh-wt-actions' },
+                  h('input', {
+                    className: 'dsh-wt-search',
+                    value: refineText,
+                    placeholder: tr(t, 'refinePlaceholder', EN.refinePlaceholder),
+                    onChange: (event) => setRefineText(event.target.value),
+                    onKeyDown: (event) => {
+                      if (event.key === 'Enter') refine(refineText)
+                    },
+                  }),
+                  h(
+                    'button',
+                    {
+                      type: 'button',
+                      className: 'dsh-wt-ghost',
+                      disabled: phase === 'busy' || refineText.trim() === '',
+                      onClick: () => refine(refineText),
+                    },
+                    tr(t, 'refineGo', EN.refineGo),
+                  ),
                 ),
               ),
             ),
@@ -1053,6 +1344,9 @@ window.__ModuleLoader__.load({
                     'div',
                     { key: record.id, className: 'dsh-wt-item', 'data-selected': basedOn === record.id ? 'true' : 'false' },
                     h('span', { className: 'dsh-wt-itemtitle' }, record.title ?? record.id),
+                    isPersonalRecord(record)
+                      ? h('span', { className: 'dsh-wt-badge' }, tr(t, 'mineBadge', EN.mineBadge))
+                      : null,
                     h(
                       'span',
                       { className: 'dsh-wt-itemmeta' },
@@ -1078,6 +1372,17 @@ window.__ModuleLoader__.load({
                         { type: 'button', className: 'dsh-wt-ghost', onClick: toggleSave(record.id) },
                         saved.includes(record.id) ? tr(t, 'libraryUnsave', EN.libraryUnsave) : tr(t, 'librarySave', EN.librarySave),
                       ),
+                      isPersonalRecord(record)
+                        ? h(
+                            'button',
+                            {
+                              type: 'button',
+                              className: 'dsh-wt-ghost',
+                              onClick: () => forgetFromLibrary(record.id),
+                            },
+                            tr(t, 'deleteMine', EN.deleteMine),
+                          )
+                        : null,
                     ),
                   ),
                 ),
