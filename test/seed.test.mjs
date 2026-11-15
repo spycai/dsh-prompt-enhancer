@@ -51,7 +51,22 @@ test('every category has at least one seed entry', () => {
 
 test('every seed body is substantial enough to serve as an example', () => {
   for (const record of SEED_RECORDS) {
-    assert.ok(record.body.length >= 80, `${record.id} body is too thin to be a useful example`)
+    // Chinese packs more information per character than English, so the bar is
+    // lower than it was for the English seed — but still high enough that a
+    // one-line stub cannot pass.
+    assert.ok(record.body.length >= 40, `${record.id} body is too thin (${record.body.length} chars)`)
+  }
+})
+
+test('every seed entry is written in Chinese', () => {
+  // The library is Chinese-only by request. An English body is useless to the
+  // user browsing it, so a stray English entry is a defect, not a variation.
+  for (const record of SEED_RECORDS) {
+    assert.equal(record.language, 'zh', `${record.id} must be tagged zh`)
+    assert.match(record.body, /[\u4e00-\u9fff]/, `${record.id} has no Chinese text`)
+  }
+  for (const record of SEED_RECORDS) {
+    assert.match(record.title, /[\u4e00-\u9fff]/, `${record.id} title has no Chinese text`)
   }
 })
 
@@ -66,12 +81,17 @@ test('getSeedRecords returns a copy that a caller cannot use to mutate the seed'
 
 test('the deck standards express checklists, never a persona', () => {
   // Three entries were added after a user asked whether prompts should open with
-  // "you are an experienced X master". They must stay verifiable.
-  const deck = SEED_RECORDS.filter((record) => record.tags.includes('deck') || /Deck/.test(record.title))
+  // "you are an experienced X master". They must stay verifiable, in Chinese.
+  const deck = SEED_RECORDS.filter((record) => record.tags.includes('演示稿') || record.title.includes('演示稿'))
   assert.ok(deck.length >= 3, `expected at least 3 deck references, got ${deck.length}`)
   for (const record of deck) {
-    assert.equal(/你是一位|You are an? /i.test(record.body), false, `${record.id} uses persona phrasing`)
-    assert.match(record.body, /check|rule|standard|Reject|Report|no longer|at most|at least/i, `${record.id} is not verifiable`)
+    assert.equal(/你是一位|你是一名|You are an? /i.test(record.body), false, `${record.id} uses persona phrasing`)
+    // Must read as an instruction with measurable limits, not a mood.
+    assert.match(
+      record.body,
+      /最多|至少|不超过|不要|逐条|清单|规则|页码/,
+      `${record.id} is not verifiable`,
+    )
   }
 })
 

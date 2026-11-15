@@ -103,7 +103,9 @@ function harness(script = {}, config = undefined, modelInfo = {}) {
     },
   }
 
-  apply(ctx, config)
+  // `autoRefreshHours: 0` disables the library refresh timer. Without it the
+  // suite keeps a live setInterval and the test process never exits.
+  apply(ctx, { autoRefreshHours: 0, ...(config ?? {}) })
   return { routes, webRoutes, calls, modelInfoCalls, ctx }
 }
 

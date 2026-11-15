@@ -35,8 +35,9 @@ import { describeTimeout } from './lib/timeout.js'
 import { wrapContext } from './lib/context.js'
 import { getSeedRecords } from './lib/seed.js'
 import { findRecord, normalizeLibrary, searchLibrary, toggleSaved } from './lib/wishlist.js'
-import { REMOTE_SOURCES, fetchSource, isRefreshDue, mergeLibraries } from './lib/sources.js'
+import { REMOTE_SOURCES, fetchSource, fetchAllSources, refreshDecision, mergeLibraries } from './lib/sources.js'
 import { buildStandardsBlock } from './lib/standards.js'
+import { readCache, resolveProfileDir, writeCache } from './lib/library-cache.js'
 
 /**
  * The seed library, normalized once at module load.
@@ -132,6 +133,41 @@ export function apply(ctx, config) {
       },
     }),
   )
+
+  // Automatic library refresh.
+  //
+  // `isRefreshDue` existed but was never called, so the library only ever grew
+  // when someone clicked Refresh — the brief asked for it to fill itself. The
+  // timer is deliberately conservative: it checks the interval hourly and lets
+  // the cache timestamp decide, so a restart does not trigger a fetch every time.
+  if (settings.autoRefreshHours > 0) {
+    ctx.effect(() => {
+      const intervalMs = settings.autoRefreshHours * 3600 * 1000
+      const check = () => {
+        try {
+          const profileDir = resolveProfileDir(ctx)
+          if (profileDir === undefined) return
+          const cached = readCache(profileDir)
+          // A cache missing sources retries on a short interval: waiting the full
+          // period after a transient blip would leave the library short for hours.
+          const decision = refreshDecision(cached, intervalMs)
+          if (!decision.due) return
+          void libraryPayload('refresh', {}, { profileDir })
+        } catch (error) {
+          warn(ctx, 'automatic library refresh failed', error)
+        }
+      }
+      // First check shortly after load, then every 5 minutes. The interval is
+      // short because a partial cache retries after ten minutes; checking hourly
+      // would delay that retry until the next hour boundary.
+      const first = setTimeout(check, 15000)
+      const periodic = setInterval(check, 300000)
+      return () => {
+        clearTimeout(first)
+        clearInterval(periodic)
+      }
+    }, 'dsh-wish-tree: automatic library refresh')
+  }
 }
 
 /**
@@ -398,7 +434,7 @@ async function respondLibrary(ctx, request) {
   }
 
   const action = typeof body?.action === 'string' ? body.action : 'list'
-  const payload = await libraryPayload(action, body)
+  const payload = await libraryPayload(action, body, { profileDir: resolveProfileDir(ctx) })
   return new Response(JSON.stringify(payload), {
     status: 200,
     headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
@@ -417,33 +453,71 @@ async function respondLibrary(ctx, request) {
  */
 export async function libraryPayload(action, body, deps = {}) {
   const seed = seedRecords
+  const profileDir = typeof deps.profileDir === 'string' ? deps.profileDir : undefined
 
   if (action !== 'refresh') {
+    // Serve the cache when there is one: a restart used to forget every fetched
+    // prompt and drop back to the seed, which made "the library grows" untrue.
+    const cached = profileDir === undefined ? undefined : readCache(profileDir)
+    if (cached !== undefined && cached.records.length > 0) {
+      const merged = mergeLibraries(seed, cached.records)
+      return {
+        ok: true,
+        action: 'list',
+        records: merged.records,
+        source: 'cache',
+        fetchedAt: cached.fetchedAt,
+      }
+    }
     return { ok: true, action: 'list', records: seed, source: 'seed', fetchedAt: '' }
   }
 
-  // A refresh is allowed but never required: the caller decides when, and the
-  // seed is always part of the answer, so a failure still yields a usable list.
-  const source = REMOTE_SOURCES[0]
-  const result = await fetchSource(source, deps)
+  // Fetch every declared source. One source being down must not lose the other,
+  // and the seed is always part of the answer so a total failure still yields a
+  // usable list.
+  const result = await fetchAllSources(REMOTE_SOURCES, deps)
   if (result.ok !== true) {
     return {
       ok: false,
       action: 'refresh',
-      reason: result.reason ?? 'unknown',
+      reason: result.failed.length > 0 ? 'all-failed' : 'no-records',
       records: seed,
       source: 'seed',
       fetchedAt: '',
+      failed: result.failed,
     }
   }
+
   const merged = mergeLibraries(seed, result.records)
+  const fetchedAt = new Date().toISOString()
+  // Persist the REMOTE records only: the seed is already compiled into the
+  // bundle, and storing it again would freeze a stale copy into the cache.
+  //
+  // A source that failed this time must NOT lose its previously cached records:
+  // a transient network blip would otherwise downgrade a full library to a
+  // partial one, and the next read would show fewer prompts than before.
+  if (profileDir !== undefined) {
+    const previous = readCache(profileDir)
+    const failed = new Set(result.failed)
+    const retained = (previous?.records ?? []).filter(
+      (record) => record !== null && typeof record === 'object' && failed.has(record.source),
+    )
+    writeCache(profileDir, {
+      records: mergeLibraries([], [...result.records, ...retained]).records,
+      fetchedAt,
+      sources: result.succeeded,
+    })
+  }
+
   return {
     ok: true,
     action: 'refresh',
     records: merged.records,
     source: 'remote',
-    fetchedAt: new Date().toISOString(),
+    fetchedAt,
     rejected: result.rejected ?? 0,
+    succeeded: result.succeeded,
+    failed: result.failed,
   }
 }
 

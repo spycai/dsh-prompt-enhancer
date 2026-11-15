@@ -85,7 +85,9 @@ function lateServicesHarness() {
     },
   }
 
-  apply(ctx, {})
+  // Timer off: this suite is about route registration, and a live setInterval
+  // would keep the test process alive forever.
+  apply(ctx, { autoRefreshHours: 0 })
 
   return {
     routes,

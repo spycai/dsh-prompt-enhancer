@@ -182,12 +182,13 @@ test('a successful refresh merges remote records over the seed', () => {
   const remote = [
     {
       id: 'remote-1',
-      title: 'Remote',
+      title: '远端条目',
       category: 'general',
-      body: 'remote body text',
+      body: '这是远端返回的中文正文内容',
+      language: 'zh',
       license: 'CC0-1.0',
-      source: 'prompts.chat',
-      sourceUrl: 'https://example.invalid/x.csv',
+      source: 'prompts-zh',
+      sourceUrl: 'https://example.invalid/x.json',
       fetchedAt: 't',
     },
   ]

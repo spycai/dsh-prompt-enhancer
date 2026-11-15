@@ -461,6 +461,8 @@ window.__ModuleLoader__.load({
       const [libLoading, setLibLoading] = React.useState(false)
       const [libNotice, setLibNotice] = React.useState('')
       const [libSource, setLibSource] = React.useState('seed')
+      /** ISO timestamp of the last successful fetch, shown next to the count. */
+      const [libFetchedAt, setLibFetchedAt] = React.useState('')
       /**
        * Seconds elapsed since the current generation started.
        *
@@ -497,6 +499,7 @@ window.__ModuleLoader__.load({
             if (Array.isArray(payload?.records)) {
               setRecords(payload.records)
               setLibSource(typeof payload.source === 'string' ? payload.source : 'seed')
+              if (typeof payload.fetchedAt === 'string') setLibFetchedAt(payload.fetchedAt.slice(0, 10))
             }
           })
           .catch(() => {
@@ -553,6 +556,13 @@ window.__ModuleLoader__.load({
             if (Array.isArray(payload?.records)) setRecords(payload.records)
             if (payload?.ok === true) {
               setLibSource('remote')
+              if (typeof payload.fetchedAt === 'string') setLibFetchedAt(payload.fetchedAt.slice(0, 10))
+              // Name a partial failure instead of reporting a clean success: a
+              // source being down is worth knowing when the count looks low.
+              const failed = Array.isArray(payload.failed) ? payload.failed : []
+              if (failed.length > 0) {
+                setLibNotice(`部分来源未拉取到：${failed.join('、')}`)
+              }
               flash(tr(t, 'done', EN.done), 'done')
             } else {
               setLibSource('seed')
@@ -821,9 +831,23 @@ window.__ModuleLoader__.load({
           libNotice === ''
             ? null
             : h('span', { className: 'dsh-wt-status', 'data-tone': 'error' }, libNotice),
-          libSource === 'seed'
-            ? null
-            : h('span', { className: 'dsh-wt-status' }, '已从在线来源更新'),
+          // A plain count, so the user can tell that a refresh actually stored
+          // something instead of silently doing nothing.
+          h(
+            'span',
+            { className: 'dsh-wt-status' },
+            [
+              zh ? `共 ${String(records.length)} 条` : `${String(records.length)} prompts`,
+              libSource === 'cache'
+                ? zh ? '已缓存' : 'cached'
+                : libSource === 'remote'
+                  ? zh ? '刚联网更新' : 'freshly fetched'
+                  : zh ? '内置库' : 'built-in',
+              libFetchedAt === '' ? '' : zh ? `上次 ${libFetchedAt}` : `last ${libFetchedAt}`,
+            ]
+              .filter((part) => part !== '')
+              .join(' · '),
+          ),
           visible.length === 0
             ? h('span', { className: 'dsh-wt-status' }, tr(t, 'libraryEmpty', EN.libraryEmpty))
             : h(

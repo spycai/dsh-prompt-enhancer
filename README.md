@@ -48,7 +48,21 @@
 
 - 搜索（多关键词）、按分类筛选、收藏
 - 选中一条作为「参考范式」——模型借鉴它的**结构**，但写的是**你的**需求
-- 点「刷新」可从 GitHub 公开来源（`f/prompts.chat`）扩充；**刷新失败会自动回落到内置库**，不影响使用
+- 点「刷新」可立即联网扩充；**默认每 6 小时自动刷新一次**（`autoRefreshHours`，0 关闭）
+- 拉到的内容**存进本地缓存**，重启后仍然在，不会退回 25 条种子
+- 刷新失败会自动回落到已有内容，不影响使用
+
+**纯中文，单一数据源，CC0 公有领域：**
+
+| 源 | 格式 | 许可 |
+|---|---|---|
+| `Vipuser2023/chatgpt-prompts-chinese` | JSON | CC0-1.0 |
+
+内置 25 条种子与所有联网条目**全部是中文**。库里有语言闸门，非中文记录一律丢弃，
+即使将来加回英文源也不会出现在面板里。
+
+只按 raw 地址取结构化文件，**不解析 HTML、不写爬虫、无需鉴权**。缓存位置：
+`<profile>/.dsh-wish-tree/library.json`。
 
 ### 它会读最近的对话
 
@@ -71,7 +85,8 @@
 | 来源 | 许可 | 说明 |
 |---|---|---|
 | 内置种子（25 条） | CC0-1.0 | 依据 `f/prompts.chat` 的提示词数据许可 |
-| 在线刷新 | CC0-1.0 | 同上，来自该仓库的 `prompts.csv` |
+
+| 在线刷新 | CC0-1.0 | `Vipuser2023/chatgpt-prompts-chinese` 的 `prompts-zh.json` |
 
 插件内置**许可白名单**（`CC0-1.0` / `MIT` / `Apache-2.0` / `BSD-3-Clause` / `ISC`），不在名单内的条目**整条丢弃**，不会出现在面板里。每条记录都保存来源与许可字段。
 
@@ -90,7 +105,7 @@
 ## 开发
 
 ```bash
-npm test              # 自动发现并运行 test/*.test.mjs（当前 230 条）
+npm test              # 自动发现并运行 test/*.test.mjs（当前 265 条）
 npm run baseline:check # 提示词质量门禁：回退即失败
 ```
 
@@ -106,6 +121,7 @@ Host 半在 `index.js`（路由、鉴权、模型调用），Client 半在 `clie
 | `lib/sources.js` | 联网取数、CSV 解析、降级 |
 | `lib/panel-state.js` | 面板状态机 |
 | `lib/standards.js` | 可选的成稿验收规范（非身份设定） |
+| `lib/library-cache.js` | 宝库本地缓存（落库） |
 
 质量基线、评估器与录制样本在 `test/lib/` 与 `test/fixtures/`。
 
